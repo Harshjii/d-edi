@@ -10,7 +10,21 @@ const AdminPanel = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
 
-  const [newProduct, setNewProduct] = useState({
+  const [newProduct, setNewProduct] = useState<{
+    name: string;
+    description: string;
+    price: number;
+    originalPrice: number;
+    category: string;
+    sizes: string[];
+    colors: string[];
+    images: string[];
+    inStock: boolean;
+    rating: number;
+    reviews: number;
+    tags: string[];
+    featured: boolean;
+  }>({
     name: '',
     description: '',
     price: 0,
@@ -25,6 +39,8 @@ const AdminPanel = () => {
     tags: [],
     featured: false
   });
+
+  const [imageUrl, setImageUrl] = useState('');
 
   // Show loading spinner while checking auth
   if (isLoading) {
@@ -44,9 +60,11 @@ const AdminPanel = () => {
     );
   }
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    addProduct(newProduct);
+    // Only add if imageUrl is not empty
+    if (!imageUrl.trim()) return;
+    await addProduct({ ...newProduct, images: [imageUrl] });
     setNewProduct({
       name: '',
       description: '',
@@ -62,6 +80,7 @@ const AdminPanel = () => {
       tags: [],
       featured: false
     });
+    setImageUrl('');
     setShowAddProduct(false);
   };
 
@@ -211,7 +230,8 @@ const AdminPanel = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
                             <input
                               type="url"
-                              onChange={(e) => setNewProduct({ ...newProduct, images: [e.target.value] })}
+                              value={imageUrl}
+                              onChange={(e) => setImageUrl(e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                               placeholder="https://example.com/image.jpg"
                               required

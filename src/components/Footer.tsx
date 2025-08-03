@@ -1,4 +1,5 @@
 import React from 'react';
+import lbbLogo from '../assets/lbb.jpg';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 
@@ -10,9 +11,11 @@ const Footer = () => {
           {/* Brand Info */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-red-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">D</span>
-              </div>
+              <img
+                src={lbbLogo}
+                alt="D-EDI Logo"
+                className="w-10 h-10 object-contain rounded-lg"
+              />
               <span className="text-2xl font-bold">D-EDI</span>
             </div>
             <p className="text-gray-400 mb-4">

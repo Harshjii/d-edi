@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from '../assets/lbb.jpg';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingCart, User, Search, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -90,9 +91,11 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-red-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">D</span>
-            </div>
+            <img
+              src={logo}
+              alt="D-EDI Logo"
+              className="w-10 h-10 object-contain rounded-lg"
+            />
             <span className="text-2xl font-bold text-navy-900">D-EDI</span>
           </Link>
 

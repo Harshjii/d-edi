@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { CreditCard, MapPin, User, Phone, Mail } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { auth , db } from '../firebase'; // adjust the path based on your structure
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+
 
 const Checkout = () => {
   const { cartItems, getTotalPrice, clearCart } = useCart();
@@ -26,13 +29,42 @@ const Checkout = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Process payment and order
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const subtotal = getTotalPrice();
+  const gst = Math.round(subtotal * 0.18);
+  const total = subtotal + gst;
+
+  const order = {
+    customerName: `${formData.firstName} ${formData.lastName}`,
+    email: formData.email,
+    phone: formData.phone,
+    address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
+    paymentMethod: formData.paymentMethod,
+    date: Timestamp.now(),
+    amount: total,
+    status: 'Processing',
+    items: cartItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity
+    }))
+  };
+
+  try {
+    await addDoc(collection(db, 'orders'), order);
     alert('Order placed successfully!');
     clearCart();
     navigate('/dashboard');
-  };
+  } catch (error) {
+    console.error('Error placing order:', error);
+    alert('Something went wrong. Please try again.');
+  }
+};
+
+
 
   const subtotal = getTotalPrice();
   const gst = Math.round(subtotal * 0.18);

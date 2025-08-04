@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+// import { storage } from '../firebase';
+// import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Package, ShoppingCart, Users, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
@@ -40,7 +42,7 @@ const AdminPanel = () => {
     featured: false
   });
 
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Show loading spinner while checking auth
   if (isLoading) {
@@ -60,11 +62,28 @@ const AdminPanel = () => {
     );
   }
 
+  // Cloudinary upload function
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const url = `https://api.cloudinary.com/v1_1/dfkupnkuc/image/upload`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'unsinged_present');
+    const res = await fetch(url, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Cloudinary upload failed');
+    return data.secure_url;
+  };
+
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Only add if imageUrl is not empty
-    if (!imageUrl.trim()) return;
-    await addProduct({ ...newProduct, images: [imageUrl] });
+    let imageUrl = '';
+    if (imageFile) {
+      imageUrl = await uploadToCloudinary(imageFile);
+    }
+    await addProduct({ ...newProduct, images: imageUrl ? [imageUrl] : [] });
     setNewProduct({
       name: '',
       description: '',
@@ -80,7 +99,7 @@ const AdminPanel = () => {
       tags: [],
       featured: false
     });
-    setImageUrl('');
+    setImageFile(null);
     setShowAddProduct(false);
   };
 
@@ -227,15 +246,60 @@ const AdminPanel = () => {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
                             <input
-                              type="url"
-                              value={imageUrl}
-                              onChange={(e) => setImageUrl(e.target.value)}
+                              type="file"
+                              accept="image/*"
+                              onChange={e => setImageFile(e.target.files ? e.target.files[0] : null)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                              placeholder="https://example.com/image.jpg"
                               required
                             />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sizes</label>
+                            <div className="flex flex-wrap gap-3">
+                              {['S', 'M', 'L', 'XL', 'XXL'].map(size => (
+                                <label key={size} className="flex items-center space-x-1">
+                                  <input
+                                    type="checkbox"
+                                    value={size}
+                                    checked={newProduct.sizes.includes(size)}
+                                    onChange={e => {
+                                      if (e.target.checked) {
+                                        setNewProduct({ ...newProduct, sizes: [...newProduct.sizes, size] });
+                                      } else {
+                                        setNewProduct({ ...newProduct, sizes: newProduct.sizes.filter(s => s !== size) });
+                                      }
+                                    }}
+                                    className="rounded border-gray-300 text-red-500"
+                                  />
+                                  <span>{size}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Colors</label>
+                            <div className="flex flex-wrap gap-3">
+                              {['Red', 'Blue', 'Green', 'Black', 'White'].map(color => (
+                                <label key={color} className="flex items-center space-x-1">
+                                  <input
+                                    type="checkbox"
+                                    value={color}
+                                    checked={newProduct.colors.includes(color)}
+                                    onChange={e => {
+                                      if (e.target.checked) {
+                                        setNewProduct({ ...newProduct, colors: [...newProduct.colors, color] });
+                                      } else {
+                                        setNewProduct({ ...newProduct, colors: newProduct.colors.filter(c => c !== color) });
+                                      }
+                                    }}
+                                    className="rounded border-gray-300 text-red-500"
+                                  />
+                                  <span>{color}</span>
+                                </label>
+                              ))}
+                            </div>
                           </div>
                           <div className="flex items-center space-x-4">
                             <label className="flex items-center">

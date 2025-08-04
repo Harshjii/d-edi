@@ -24,6 +24,16 @@ const Cart = () => {
     );
   }
 
+  // Calculate shipping charges: average if multiple, single value if one, 0 if none
+  const shippingCharges =
+    cartItems.length === 1
+      ? cartItems[0].shippingCharges || 0
+      : cartItems.length > 1
+        ? Math.round(
+            cartItems.reduce((sum, item) => sum + (item.shippingCharges || 0), 0) / cartItems.length
+          )
+        : 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -96,7 +106,7 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium text-green-600">Free</span>
+                  <span className="font-medium text-gray-900">₹{shippingCharges}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">GST (18%)</span>
@@ -105,7 +115,7 @@ const Cart = () => {
                 <div className="border-t pt-4">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold">Total</span>
-                    <span className="text-lg font-semibold">₹{Math.round(getTotalPrice() + (getTotalPrice() * 0.18))}</span>
+                    <span className="text-lg font-semibold">₹{Math.round(getTotalPrice() + (getTotalPrice() * 0.18) + shippingCharges)}</span>
                   </div>
                 </div>
               </div>

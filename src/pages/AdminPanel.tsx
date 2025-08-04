@@ -17,6 +17,7 @@ const AdminPanel = () => {
     description: string;
     price: number;
     originalPrice: number;
+    shippingCharges: number;
     category: string;
     sizes: string[];
     colors: string[];
@@ -31,6 +32,7 @@ const AdminPanel = () => {
     description: '',
     price: 0,
     originalPrice: 0,
+    shippingCharges: 0,
     category: '',
     sizes: [],
     colors: [],
@@ -89,6 +91,7 @@ const AdminPanel = () => {
       description: '',
       price: 0,
       originalPrice: 0,
+      shippingCharges: 0,
       category: '',
       sizes: [],
       colors: [],
@@ -224,7 +227,7 @@ const AdminPanel = () => {
                               required
                             />
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
                               <input
@@ -241,6 +244,15 @@ const AdminPanel = () => {
                                 type="number"
                                 value={newProduct.originalPrice}
                                 onChange={(e) => setNewProduct({ ...newProduct, originalPrice: parseInt(e.target.value) })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Shipping Charges (₹)</label>
+                              <input
+                                type="number"
+                                value={newProduct.shippingCharges}
+                                onChange={(e) => setNewProduct({ ...newProduct, shippingCharges: parseInt(e.target.value) })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                               />
                             </div>
@@ -338,6 +350,7 @@ const AdminPanel = () => {
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Product</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Category</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Price</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Shipping</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Status</th>
                             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
                           </tr>
@@ -362,6 +375,7 @@ const AdminPanel = () => {
                                 {product.category.replace('-', ' ')}
                               </td>
                               <td className="px-4 py-4 text-sm font-medium">₹{product.price}</td>
+                              <td className="px-4 py-4 text-sm font-medium">₹{product.shippingCharges ?? 0}</td>
                               <td className="px-4 py-4">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                   product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

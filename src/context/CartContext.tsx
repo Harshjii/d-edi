@@ -8,6 +8,7 @@ export interface CartItem {
   size: string;
   color: string;
   quantity: number;
+  shippingCharges: number;
 }
 
 interface CartContextType {
@@ -48,7 +49,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : cartItem
         );
       } else {
-        return [...prevItems, { ...item, quantity: 1 }];
+        // Default to 0 if not provided
+        return [...prevItems, { ...item, quantity: 1, shippingCharges: item.shippingCharges ?? 0 }];
       }
     });
   };

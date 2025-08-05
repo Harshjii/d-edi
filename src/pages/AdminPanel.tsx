@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // import { storage } from '../firebase';
@@ -54,9 +55,20 @@ export const fetchOrders = async () => {
 
 
 const AdminPanel = () => {
+  // ...existing state declarations...
+  // ...existing state declarations...
+  // ...existing code...
+  // ...existing state declarations...
+  // ...existing code...
+  // (Pie chart data will be defined just before return)
   // State for customers
   const [customers, setCustomers] = useState<any[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  // Pagination state for customers
+  const [customersPage, setCustomersPage] = useState(1);
+  const [customersPageSize, setCustomersPageSize] = useState(10);
+  const totalCustomerPages = Math.ceil(customers.length / customersPageSize);
+  const paginatedCustomers = customers.slice((customersPage - 1) * customersPageSize, customersPage * customersPageSize);
   // State for orders, loading, revenue, and selected order (for modal)
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -75,6 +87,35 @@ const AdminPanel = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [viewingProduct, setViewingProduct] = useState<any | null>(null);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  // State for viewing customer details
+  const [viewingCustomer, setViewingCustomer] = useState<any | null>(null);
+  // State for deleting customer
+  const [deletingCustomer, setDeletingCustomer] = useState<any | null>(null);
+  const [deletingCustomerLoading, setDeletingCustomerLoading] = useState(false);
+  // Delete customer function (Firestore)
+  const deleteCustomer = async (customerId: string) => {
+    setDeletingCustomerLoading(true);
+    try {
+      // Remove from Firestore
+      await db.collection('users').doc(customerId).delete();
+      // Remove from local state
+      setCustomers(prev => prev.filter(c => c.id !== customerId));
+      toast.success('Customer deleted successfully!', {
+        position: 'top-center',
+        autoClose: 2000,
+        style: { fontSize: '1.1rem', textAlign: 'center' }
+      });
+    } catch (err) {
+      toast.error('Failed to delete customer: ' + (err as Error).message, {
+        position: 'top-center',
+        autoClose: 2000,
+        style: { fontSize: '1.1rem', textAlign: 'center' }
+      });
+    } finally {
+      setDeletingCustomer(null);
+      setDeletingCustomerLoading(false);
+    }
+  };
 
   const [newProduct, setNewProduct] = useState<{
     name: string;
@@ -109,6 +150,7 @@ const AdminPanel = () => {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [addingProduct, setAddingProduct] = useState(false);
 
   // Show loading spinner while checking auth
   if (isLoading) {
@@ -130,11 +172,11 @@ const AdminPanel = () => {
 
   // Cloudinary upload function
   const uploadToCloudinary = async (file: File): Promise<string> => {
-    const url = `https://api.cloudinary.com/v1_1/d-edi/image/upload`;
+    // Make sure 'your_upload_preset' matches the preset name in your Cloudinary dashboard (Settings > Upload)
+    const url = 'https://api.cloudinary.com/v1_1/dfkupnkuc/image/upload';
     const formData = new FormData();
     formData.append('file', file);
-    // Use your actual Cloudinary upload preset
-    formData.append('upload_preset', 'd-edi');
+    formData.append('upload_preset', 'unsinged_present'); // Use your actual preset name here
     const res = await fetch(url, {
       method: 'POST',
       body: formData
@@ -155,7 +197,11 @@ const AdminPanel = () => {
       })
       .catch((err) => {
         console.error('Error fetching customers:', err);
-        toast.error('Error fetching customers: ' + (err?.message || err), { position: 'top-right', autoClose: 3000 });
+        toast.error('Error fetching customers: ' + (err?.message || err) + '.\nCheck Firestore rules for /users and ensure your user has permission.', {
+          position: 'top-center',
+          autoClose: 4000,
+          style: { fontSize: '1rem', textAlign: 'center' }
+        });
         setLoadingCustomers(false);
       });
 
@@ -178,6 +224,7 @@ const AdminPanel = () => {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAddingProduct(true);
     let imageUrl = '';
     try {
       if (imageFile) {
@@ -202,9 +249,19 @@ const AdminPanel = () => {
       });
       setImageFile(null);
       setShowAddProduct(false);
-      toast.success('Product added successfully!', { position: 'top-right', autoClose: 2000 });
+      toast.success('Product added successfully!', {
+        position: 'top-center',
+        autoClose: 2000,
+        style: { fontSize: '1.25rem', textAlign: 'center' }
+      });
     } catch (err) {
-      toast.error('Failed to add product: ' + (err as Error).message, { position: 'top-right', autoClose: 2000 });
+      toast.error('Failed to add product: ' + (err as Error).message, {
+        position: 'top-center',
+        autoClose: 2000,
+        style: { fontSize: '1.25rem', textAlign: 'center' }
+      });
+    } finally {
+      setAddingProduct(false);
     }
   };
 
@@ -237,6 +294,16 @@ const AdminPanel = () => {
     { id: 'customers', label: 'Customers', icon: Users }
   ];
 
+  // Pie chart data for products/orders only
+  const productOrderData = [
+    { name: 'Products', value: products.length },
+    { name: 'Orders', value: orders.length }
+  ];
+  // Pie chart data for revenue only
+  const revenueData = [
+    { name: 'Revenue', value: totalRevenue }
+  ];
+  const COLORS = ['#3b82f6', '#22c55e', '#a21caf'];
   return (
     <div className="min-h-screen bg-gray-50">
       <ToastContainer />
@@ -294,6 +361,49 @@ const AdminPanel = () => {
                       <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
                         <h3 className="text-lg font-semibold">Total Revenue</h3>
                         <p className="text-3xl font-bold">₹{totalRevenue.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    {/* Pie Charts for overview */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                      <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                        <h3 className="text-xl font-bold mb-4 text-gray-700">Products vs Orders</h3>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <PieChart>
+                            <Pie
+                              data={productOrderData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                            >
+                              {productOrderData.map((_, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                        <h3 className="text-xl font-bold mb-4 text-gray-700">Revenue</h3>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <PieChart>
+                            <Pie
+                              data={revenueData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                            >
+                              <Cell fill={COLORS[2]} />
+                            </Pie>
+                            <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
                     </div>
                   </div>
@@ -457,9 +567,20 @@ const AdminPanel = () => {
                             <div className="flex space-x-4">
                               <button
                                 type="submit"
-                                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center"
+                                disabled={addingProduct}
                               >
-                                Add Product
+                                {addingProduct ? (
+                                  <span className="flex items-center">
+                                    <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                    </svg>
+                                    Adding...
+                                  </span>
+                                ) : (
+                                  'Add Product'
+                                )}
                               </button>
                               <button
                                 type="button"
@@ -620,15 +741,15 @@ const AdminPanel = () => {
                   <td className="px-4 py-2 text-sm">
                     {order.date?.toDate ? order.date.toDate().toLocaleDateString() : '—'}
                   </td>
-                  <td className="px-4 py-2 text-sm">
-                    <button
-                      className="px-5 py-1.5 rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold shadow-md hover:from-green-600 hover:to-green-700 hover:scale-105 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400"
-                      onClick={() => handleViewOrder(order)}
-                      aria-label="View order details"
-                    >
-                      View
-                    </button>
-                  </td>
+  <td className="px-4 py-2 text-sm">
+    <button
+      className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+      onClick={() => handleViewOrder(order)}
+      aria-label="View order details"
+    >
+      <Eye className="w-4 h-4" />
+    </button>
+  </td>
                 </tr>
               ))}
             </tbody>
@@ -650,29 +771,122 @@ const AdminPanel = () => {
                         <p className="text-gray-500">No customers found</p>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full table-auto border border-gray-200 rounded">
-                          <thead className="bg-gray-100">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-sm font-semibold">Name</th>
-                              <th className="px-4 py-2 text-left text-sm font-semibold">Email</th>
-                              <th className="px-4 py-2 text-left text-sm font-semibold">Phone</th>
-                              <th className="px-4 py-2 text-left text-sm font-semibold">Address</th>
-                              <th className="px-4 py-2 text-left text-sm font-semibold">Role</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {customers.map((customer) => (
-                              <tr key={customer.id} className="border-t group hover:bg-gray-50 relative">
-                                <td className="px-4 py-2 text-sm">{customer.name || 'N/A'}</td>
-                                <td className="px-4 py-2 text-sm">{customer.email || 'N/A'}</td>
-                                <td className="px-4 py-2 text-sm">{customer.phone || 'N/A'}</td>
-                                <td className="px-4 py-2 text-sm">{customer.address || 'N/A'}</td>
-                                <td className="px-4 py-2 text-sm">{customer.role || 'user'}</td>
+                      <div>
+                        <div className="flex justify-between items-center mb-4">
+                          <div>
+                            <label className="mr-2 font-medium text-gray-700">Rows per page:</label>
+                            <select
+                              value={customersPageSize}
+                              onChange={e => {
+                                setCustomersPageSize(Number(e.target.value));
+                                setCustomersPage(1);
+                              }}
+                              className="px-2 py-1 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                              <option value={10}>10</option>
+                              <option value={20}>20</option>
+                              <option value={50}>50</option>
+                              <option value={100}>100</option>
+                            </select>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold disabled:opacity-50"
+                              onClick={() => setCustomersPage(p => Math.max(1, p - 1))}
+                              disabled={customersPage === 1}
+                            >
+                              Prev
+                            </button>
+                            <span className="font-medium text-gray-700">Page {customersPage} of {totalCustomerPages}</span>
+                            <button
+                              className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold disabled:opacity-50"
+                              onClick={() => setCustomersPage(p => Math.min(totalCustomerPages, p + 1))}
+                              disabled={customersPage === totalCustomerPages}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full table-auto border border-gray-200 rounded">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-sm font-semibold">Name</th>
+                                <th className="px-4 py-2 text-left text-sm font-semibold">Email</th>
+                                <th className="px-4 py-2 text-left text-sm font-semibold">Phone</th>
+                                <th className="px-4 py-2 text-left text-sm font-semibold">Address</th>
+                                <th className="px-4 py-2 text-left text-sm font-semibold">Role</th>
+                                <th className="px-4 py-2 text-left text-sm font-semibold">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {paginatedCustomers.map((customer) => (
+                                <tr key={customer.id} className="border-t group hover:bg-gray-50 relative">
+                                  <td className="px-4 py-2 text-sm">{customer.name || 'N/A'}</td>
+                                  <td className="px-4 py-2 text-sm">{customer.email || 'N/A'}</td>
+                                  <td className="px-4 py-2 text-sm">{customer.phone || 'N/A'}</td>
+                                  <td className="px-4 py-2 text-sm">{customer.address || 'N/A'}</td>
+                                  <td className="px-4 py-2 text-sm">{customer.role || 'user'}</td>
+  <td className="px-4 py-2 text-sm">
+    <div className="flex space-x-2">
+      <button
+        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+        onClick={() => setViewingCustomer(customer)}
+        aria-label="View customer details"
+      >
+        <Eye className="w-4 h-4" />
+      </button>
+      <button
+        className="p-1 text-red-600 hover:bg-red-50 rounded"
+        onClick={() => setDeletingCustomer(customer)}
+        aria-label="Delete customer"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  </td>
+      {/* Modal for deleting customer confirmation */}
+      {deletingCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative transform transition-all duration-300 scale-100 animate-slideUp">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl transition-colors"
+              onClick={() => setDeletingCustomer(null)}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <div className="flex flex-col items-center">
+              <svg className="w-16 h-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <h3 className="text-2xl font-bold mb-2 text-red-700">Delete Customer?</h3>
+              <p className="text-gray-600 mb-6 text-center">Are you sure you want to delete <span className="font-semibold">{deletingCustomer.name || deletingCustomer.email}</span>? This action cannot be undone.</p>
+              <div className="flex space-x-4">
+                <button
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  onClick={() => deleteCustomer(deletingCustomer.id)}
+                  disabled={deletingCustomerLoading}
+                >
+                  {deletingCustomerLoading ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  onClick={() => setDeletingCustomer(null)}
+                  disabled={deletingCustomerLoading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -764,61 +978,48 @@ const AdminPanel = () => {
             </button>
             <h3 className="text-2xl font-bold mb-6 text-blue-700">Product Details</h3>
             <div className="space-y-4">
+              {/* ...existing product details... */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for viewing customer details */}
+      {viewingCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-8 relative transform transition-all duration-300 scale-100 animate-slideUp">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl transition-colors"
+              onClick={() => setViewingCustomer(null)}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <h3 className="text-2xl font-bold mb-6 text-blue-700">Customer Details</h3>
+            <div className="space-y-4">
               <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Product ID:</span>
-                <span>{viewingProduct.id}</span>
+                <span className="font-semibold text-gray-700">Customer ID:</span>
+                <span>{viewingCustomer.id}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-semibold text-gray-700">Name:</span>
-                <span>{viewingProduct.name}</span>
+                <span>{viewingCustomer.name || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Category:</span>
-                <span>{viewingProduct.category}</span>
+                <span className="font-semibold text-gray-700">Email:</span>
+                <span>{viewingCustomer.email || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Price:</span>
-                <span>₹{viewingProduct.price}</span>
+                <span className="font-semibold text-gray-700">Phone:</span>
+                <span>{viewingCustomer.phone || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Original Price:</span>
-                <span>₹{viewingProduct.originalPrice ?? '-'}</span>
+                <span className="font-semibold text-gray-700">Address:</span>
+                <span>{viewingCustomer.address || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Shipping Charges:</span>
-                <span>₹{viewingProduct.shippingCharges ?? 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">In Stock:</span>
-                <span>{viewingProduct.inStock ? 'Yes' : 'No'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-gray-700">Featured:</span>
-                <span>{viewingProduct.featured ? 'Yes' : 'No'}</span>
-              </div>
-              <div>
-                <span className="font-semibold text-gray-700">Description:</span>
-                <p className="mt-2 text-gray-600">{viewingProduct.description}</p>
-              </div>
-              <div>
-                <span className="font-semibold text-gray-700">Sizes:</span>
-                <span className="ml-2 text-gray-600">{viewingProduct.sizes?.join(', ') || '-'}</span>
-              </div>
-              <div>
-                <span className="font-semibold text-gray-700">Colors:</span>
-                <span className="ml-2 text-gray-600">{viewingProduct.colors?.join(', ') || '-'}</span>
-              </div>
-              <div>
-                <span className="font-semibold text-gray-700">Tags:</span>
-                <span className="ml-2 text-gray-600">{viewingProduct.tags?.join(', ') || '-'}</span>
-              </div>
-              <div>
-                <span className="font-semibold text-gray-700">Images:</span>
-                <div className="flex gap-2 mt-2">
-                  {viewingProduct.images?.map((img: string, idx: number) => (
-                    <img key={idx} src={img} alt="Product" className="w-16 h-16 object-cover rounded-lg" />
-                  ))}
-                </div>
+                <span className="font-semibold text-gray-700">Role:</span>
+                <span>{viewingCustomer.role || 'user'}</span>
               </div>
             </div>
           </div>

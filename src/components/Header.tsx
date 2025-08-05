@@ -3,6 +3,7 @@ import logo from '../assets/lbb.jpg';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingCart, User, Search, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useProductCategories } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 
 // ProfileMenu component for user dropdown
@@ -79,13 +80,35 @@ const Header = () => {
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [searchDisabled, setSearchDisabled] = useState(false);
+  const categories: string[] = useProductCategories();
+  // Track route changes to disable search
+  const [lastPath, setLastPath] = useState(window.location.pathname);
+  React.useEffect(() => {
+    if (window.location.pathname !== lastPath) {
+      setSearchDisabled(true);
+      setSearchTerm("");
+      setTimeout(() => setSearchDisabled(false), 500); // re-enable after short delay
+      setLastPath(window.location.pathname);
+    }
+  }, [window.location.pathname, lastPath]);
 
   // Dynamic search: fetch products from Firebase
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+    let url = '/products';
+    if (selectedCategory) {
+      url += `/${encodeURIComponent(selectedCategory)}`;
     }
+    const params = [];
+    if (searchTerm.trim()) {
+      params.push(`search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    navigate(url);
   };
 
   return (
@@ -121,17 +144,30 @@ const Header = () => {
 
           {/* Search */}
           <div className="hidden md:flex items-center flex-1 max-w-lg mx-8">
-            <form className="relative w-full" onSubmit={handleSearch}>
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-md"
-              />
-              <button type="submit" className="absolute left-3 top-3">
-                <Search className="w-5 h-5 text-gray-400" />
-              </button>
+            <form className="relative w-full flex space-x-2" onSubmit={handleSearch}>
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-md"
+                  disabled={searchDisabled}
+                />
+                <button type="submit" className="absolute left-3 top-3">
+                  <Search className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <select
+                value={selectedCategory}
+                onChange={e => setSelectedCategory(e.target.value)}
+                className="px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white text-gray-700 font-medium shadow-md"
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat: string) => (
+                  <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                ))}
+              </select>
             </form>
           </div>
 
@@ -172,17 +208,30 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t animate-fadeInDown">
             <div className="flex flex-col space-y-4">
-              <form className="relative" onSubmit={handleSearch}>
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-md"
-                />
-                <button type="submit" className="absolute left-3 top-2.5">
-                  <Search className="w-5 h-5 text-gray-400" />
-                </button>
+              <form className="relative flex space-x-2" onSubmit={handleSearch}>
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-md"
+                    disabled={searchDisabled}
+                  />
+                  <button type="submit" className="absolute left-3 top-2.5">
+                    <Search className="w-5 h-5 text-gray-400" />
+                  </button>
+                </div>
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white text-gray-700 font-medium shadow-md"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat: string) => (
+                    <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                  ))}
+                </select>
               </form>
               <Link to="/" className="text-gray-700 hover:text-yellow-600 font-semibold">Home</Link>
               <Link to="/products/t-shirts" className="text-gray-700 hover:text-yellow-600 font-semibold">T-Shirts</Link>

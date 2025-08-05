@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Filter, Grid, List, Star, Heart } from 'lucide-react';
 import { useProducts, useProductCategories } from '../context/ProductContext';
 
@@ -9,17 +9,19 @@ const ProductListing = () => {
   const { products, getProductsByCategory } = useProducts();
   const categories = useProductCategories();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState('featured');
+  // Removed unused sortBy state
+  const navigate = useNavigate();
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Get search term from URL
+  // Get search and sort term from URL
   const searchParams = new URLSearchParams(location.search);
   const searchTerm = searchParams.get('search')?.toLowerCase() || '';
+  const sortParam = searchParams.get('sort') || '';
 
-  // Filter products by category and search term
+  // Filter and sort products by category, search term, and sort param
   const displayProducts = useMemo(() => {
     let filtered = selectedCategory === 'all'
       ? products
@@ -31,8 +33,18 @@ const ProductListing = () => {
           p.description.toLowerCase().includes(searchTerm)
       );
     }
+    // Sorting logic
+    if (sortParam === 'price-asc') {
+      filtered = [...filtered].sort((a, b) => a.price - b.price);
+    } else if (sortParam === 'price-desc') {
+      filtered = [...filtered].sort((a, b) => b.price - a.price);
+    } else if (sortParam === 'rating-desc') {
+      filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortParam === 'rating-asc') {
+      filtered = [...filtered].sort((a, b) => (a.rating || 0) - (b.rating || 0));
+    }
     return filtered;
-  }, [products, selectedCategory, searchTerm]);
+  }, [products, selectedCategory, searchTerm, sortParam]);
 
   const categoryTitle = category ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') : 'All Products';
 
@@ -91,8 +103,27 @@ const ProductListing = () => {
 
           <div className="flex items-center space-x-4">
             <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              value={sortParam ? sortParam : 'featured'}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Update sort param in URL
+                const params = new URLSearchParams(location.search);
+                if (value === 'featured') {
+                  params.delete('sort');
+                } else if (value === 'price-low') {
+                  params.set('sort', 'price-asc');
+                } else if (value === 'price-high') {
+                  params.set('sort', 'price-desc');
+                } else if (value === 'rating') {
+                  params.set('sort', 'rating-desc');
+                } else if (value === 'newest') {
+                  params.set('sort', 'newest');
+                }
+                navigate({
+                  pathname: location.pathname,
+                  search: params.toString()
+                });
+              }}
               className="bg-white px-4 py-2 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-yellow-500"
             >
               <option value="featured">Featured</option>

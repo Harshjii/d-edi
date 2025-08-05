@@ -1,36 +1,25 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { useAuth } from './hooks/useAuth'
-import LoadingSpinner from './components/UI/LoadingSpinner'
+import ProtectedRoute from './components/Auth/ProtectedRoute'
+import AuthCallback from './components/Auth/AuthCallback'
 
 // Auth pages
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
+
+// Public pages
+import Landing from './pages/Public/Landing'
 
 // Dashboard pages
 import Dashboard from './pages/Dashboard/Dashboard'
 import ProductList from './pages/Products/ProductList'
 import OrderList from './pages/Orders/OrderList'
 
-// Protected Route component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
-  return <>{children}</>
-}
+// Seller pages
+import SellerDashboard from './pages/Seller/SellerDashboard'
+import SellerProducts from './pages/Seller/SellerProducts'
+import SellerOrders from './pages/Seller/SellerOrders'
 
 function App() {
   return (
@@ -38,14 +27,18 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <Routes>
           {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<Landing />} />
           
-          {/* Protected routes */}
+          {/* Public routes */}
+          <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          
+          {/* Customer routes */}
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="user">
                 <Dashboard />
               </ProtectedRoute>
             }
@@ -53,7 +46,7 @@ function App() {
           <Route
             path="/products"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="user">
                 <ProductList />
               </ProtectedRoute>
             }
@@ -61,17 +54,42 @@ function App() {
           <Route
             path="/orders"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="user">
                 <OrderList />
               </ProtectedRoute>
             }
           />
           
-          {/* Redirect root to dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Seller routes */}
+          <Route
+            path="/seller-portal-x7g9"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SellerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/seller-portal-x7g9/products"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SellerProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/seller-portal-x7g9/orders"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <SellerOrders />
+              </ProtectedRoute>
+            }
+          />
           
-          {/* Catch all other routes */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Fallback routes */}
+          <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+          <Route path="/register" element={<Navigate to="/auth/register" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         
         <Toaster

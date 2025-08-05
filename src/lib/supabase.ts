@@ -7,11 +7,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    redirectTo: `${window.location.origin}/auth/callback`
+  }
+})
 
 // Database types
 export interface Product {
   id: string
+  seller_id: string
   name: string
   description: string
   price: number
@@ -22,6 +27,7 @@ export interface Product {
   sizes: string[]
   colors: string[]
   in_stock: boolean
+  stock_quantity: number
   rating: number
   reviews: number
   tags: string[]
@@ -33,6 +39,7 @@ export interface Product {
 export interface Order {
   id: string
   user_id: string
+  seller_id: string
   customer_name: string
   email: string
   phone: string
@@ -50,6 +57,7 @@ export interface OrderItem {
   product_name: string
   quantity: number
   price: number
+  seller_id: string
 }
 
 export interface Profile {
@@ -58,6 +66,7 @@ export interface Profile {
   full_name: string
   avatar_url?: string
   role: 'user' | 'admin'
+  google_id?: string
   created_at: string
   updated_at: string
 }

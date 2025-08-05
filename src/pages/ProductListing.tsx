@@ -1,46 +1,38 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { Filter, Grid, List, Star, Heart } from 'lucide-react';
-import { useProducts } from '../context/ProductContext';
+import { useProducts, useProductCategories } from '../context/ProductContext';
 
 const ProductListing = () => {
   const { category } = useParams();
+  const location = useLocation();
   const { products, getProductsByCategory } = useProducts();
+  const categories = useProductCategories();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('featured');
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
+  // Get search term from URL
+  const searchParams = new URLSearchParams(location.search);
+  const searchTerm = searchParams.get('search')?.toLowerCase() || '';
+
+  // Filter products by category and search term
   const displayProducts = useMemo(() => {
-    let filteredProducts = category ? getProductsByCategory(category) : products;
-
-    // Apply price filter
-    filteredProducts = filteredProducts.filter(
-      product => product.price >= priceRange[0] && product.price <= priceRange[1]
-    );
-
-    // Apply size filter
-    if (selectedSizes.length > 0) {
-      filteredProducts = filteredProducts.filter(product =>
-        product.sizes.some(size => selectedSizes.includes(size))
+    let filtered = selectedCategory === 'all'
+      ? products
+      : products.filter(p => p.category === selectedCategory);
+    if (searchTerm) {
+      filtered = filtered.filter(
+        p =>
+          p.name.toLowerCase().includes(searchTerm) ||
+          p.description.toLowerCase().includes(searchTerm)
       );
     }
-
-    // Apply sorting
-    switch (sortBy) {
-      case 'price-low':
-        return [...filteredProducts].sort((a, b) => a.price - b.price);
-      case 'price-high':
-        return [...filteredProducts].sort((a, b) => b.price - a.price);
-      case 'rating':
-        return [...filteredProducts].sort((a, b) => b.rating - a.rating);
-      case 'newest':
-        return [...filteredProducts].reverse();
-      default:
-        return filteredProducts;
-    }
-  }, [products, category, getProductsByCategory, priceRange, selectedSizes, sortBy]);
+    return filtered;
+  }, [products, selectedCategory, searchTerm]);
 
   const categoryTitle = category ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') : 'All Products';
 
@@ -57,6 +49,31 @@ const ProductListing = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">{categoryTitle}</h1>
           <p className="text-gray-600">Discover our premium collection of {categoryTitle.toLowerCase()}</p>
+        </div>
+
+        {/* Category Tabs */}
+        <div className="flex gap-4 mb-6">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              selectedCategory === 'all'
+                ? 'bg-yellow-500 text-white shadow-md'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            All
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                selectedCategory === cat ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'
+              }`}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </button>
+          ))}
         </div>
 
         {/* Filters and Sort */}

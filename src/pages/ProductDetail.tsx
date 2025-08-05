@@ -14,6 +14,10 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [showToast, setShowToast] = useState(false);
+  const [loadingBuy, setLoadingBuy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  // Removed unused variables: redirectCheckout, productDetail, navigate
 
   if (!product) {
     return (
@@ -25,29 +29,52 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!selectedSize || !selectedColor) {
-      alert('Please select size and color');
+      setErrorMsg('Please select size and color');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
       return;
     }
-
     addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
       image: product.images[0],
       size: selectedSize,
-      color: selectedColor
+      color: selectedColor,
+      shippingCharges: product.shippingCharges ?? 0,
+      ...(quantity ? { quantity } : {})
     });
-
-    alert('Product added to cart!');
+    setErrorMsg('Product added to cart!');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
   };
 
   const handleBuyNow = () => {
-    handleAddToCart();
-    // Navigate to checkout
+    if (!selectedSize || !selectedColor) {
+      setErrorMsg('Please select size and color');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+      return;
+    }
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0],
+      size: selectedSize,
+      color: selectedColor,
+      shippingCharges: product.shippingCharges ?? 0,
+      ...(quantity ? { quantity } : {})
+    });
+    setLoadingBuy(true);
+    setTimeout(() => {
+      setLoadingBuy(false);
+      window.location.href = '/checkout';
+    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative">
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="mb-8">
@@ -202,14 +229,28 @@ const ProductDetail = () => {
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors relative"
+                disabled={loadingBuy}
               >
-                Buy Now
+                {loadingBuy ? (
+                  <span className="flex items-center justify-center w-full">
+                    <span className="loader-bar bg-yellow-500 h-2 w-full absolute left-0 top-0 animate-pulse" style={{ borderRadius: '4px' }}></span>
+                    <span className="ml-2">Processing...</span>
+                  </span>
+                ) : (
+                  'Buy Now'
+                )}
               </button>
               <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <Heart className="w-5 h-5 text-gray-600" />
               </button>
             </div>
+      {/* Toast pop-up for Add to Cart and errors */}
+      {showToast && (
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-lg font-semibold animate-fadeIn">
+          {errorMsg}
+        </div>
+      )}
 
             {/* Features */}
             <div className="border-t pt-6">

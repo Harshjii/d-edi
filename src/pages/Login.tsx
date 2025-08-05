@@ -1,9 +1,24 @@
 import React, { useState } from 'react';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+  const handleGoogleSignIn = async () => {
+    setError('');
+    try {
+      const auth = getAuth();
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        navigate('/');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Google sign-in failed');
+    }
+  };
   const { login } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -95,6 +110,14 @@ const Login = () => {
             className="w-full bg-gradient-to-r from-yellow-500 to-red-600 text-white py-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-red-700 transition-all duration-200 transform hover:scale-105"
           >
             Sign In
+          </button>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full mt-2 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold flex items-center justify-center hover:bg-gray-50 transition-all duration-200"
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.22l6.85-6.85C36.45 2.34 30.59 0 24 0 14.73 0 6.41 5.74 2.44 14.1l7.98 6.21C12.13 13.16 17.62 9.5 24 9.5z"/><path fill="#34A853" d="M46.09 24.59c0-1.56-.14-3.06-.41-4.5H24v9.02h12.44c-.54 2.9-2.18 5.36-4.65 7.02l7.19 5.59C43.99 37.36 46.09 31.44 46.09 24.59z"/><path fill="#FBBC05" d="M10.42 28.31c-.62-1.85-.98-3.81-.98-5.81s.36-3.96.98-5.81l-7.98-6.21C.34 13.98 0 18.87 0 24c0 5.13.34 10.02 2.44 14.1l7.98-6.21z"/><path fill="#EA4335" d="M24 48c6.59 0 12.45-2.17 16.94-5.91l-7.19-5.59c-2.01 1.35-4.59 2.16-7.75 2.16-6.38 0-11.87-3.66-14.58-8.81l-7.98 6.21C6.41 42.26 14.73 48 24 48z"/></svg>
+            Sign in with Google
           </button>
         </form>
 

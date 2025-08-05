@@ -77,10 +77,21 @@ const Header = () => {
     navigate('/');
   };
 
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Dynamic search: fetch products from Firebase
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg animate-fadeInDown">
       {/* Top banner */}
-      <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2">
+      <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 animate-pulse">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm font-medium">Free shipping on orders above ₹999 | Follow us @deepjotclothingstore</p>
         </div>
@@ -88,40 +99,44 @@ const Header = () => {
 
       {/* Main header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <img
               src={logo}
               alt="D-EDI Logo"
-              className="w-10 h-10 object-contain rounded-lg"
+              className="w-12 h-12 object-contain rounded-lg border-2 border-yellow-400 shadow-lg"
             />
-            <span className="text-2xl font-bold text-navy-900">D-EDI</span>
+            <span className="text-3xl font-bold text-navy-900 tracking-wide">D-EDI</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">Home</Link>
-            <Link to="/products/t-shirts" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">T-Shirts</Link>
-            <Link to="/products/dresses" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">Dresses</Link>
-            <Link to="/products/ethnic" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">Ethnic Wear</Link>
-            <Link to="/products" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">All Products</Link>
+          <nav className="hidden md:flex items-center space-x-10">
+            <Link to="/" className="text-gray-700 hover:text-yellow-600 font-semibold transition-colors">Home</Link>
+            <Link to="/products/t-shirts" className="text-gray-700 hover:text-yellow-600 font-semibold transition-colors">T-Shirts</Link>
+            <Link to="/products/dresses" className="text-gray-700 hover:text-yellow-600 font-semibold transition-colors">Dresses</Link>
+            <Link to="/products/ethnic" className="text-gray-700 hover:text-yellow-600 font-semibold transition-colors">Ethnic Wear</Link>
+            <Link to="/products" className="text-gray-700 hover:text-yellow-600 font-semibold transition-colors">All Products</Link>
           </nav>
 
           {/* Search */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
+          <div className="hidden md:flex items-center flex-1 max-w-lg mx-8">
+            <form className="relative w-full" onSubmit={handleSearch}>
               <input
                 type="text"
                 placeholder="Search products..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-md"
               />
-              <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-            </div>
+              <button type="submit" className="absolute left-3 top-3">
+                <Search className="w-5 h-5 text-gray-400" />
+              </button>
+            </form>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {user ? (
               <ProfileMenu user={user} onLogout={handleLogout} />
             ) : (
@@ -137,7 +152,7 @@ const Header = () => {
             <Link to="/cart" className="relative text-gray-700 hover:text-yellow-600">
               <ShoppingCart className="w-6 h-6" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
                   {cartItemsCount}
                 </span>
               )}
@@ -155,21 +170,25 @@ const Header = () => {
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t">
+          <div className="md:hidden py-4 border-t animate-fadeInDown">
             <div className="flex flex-col space-y-4">
-              <div className="relative">
+              <form className="relative" onSubmit={handleSearch}>
                 <input
                   type="text"
                   placeholder="Search products..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-md"
                 />
-                <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-              </div>
-              <Link to="/" className="text-gray-700 hover:text-yellow-600 font-medium">Home</Link>
-              <Link to="/products/t-shirts" className="text-gray-700 hover:text-yellow-600 font-medium">T-Shirts</Link>
-              <Link to="/products/dresses" className="text-gray-700 hover:text-yellow-600 font-medium">Dresses</Link>
-              <Link to="/products/ethnic" className="text-gray-700 hover:text-yellow-600 font-medium">Ethnic Wear</Link>
-              <Link to="/products" className="text-gray-700 hover:text-yellow-600 font-medium">All Products</Link>
+                <button type="submit" className="absolute left-3 top-2.5">
+                  <Search className="w-5 h-5 text-gray-400" />
+                </button>
+              </form>
+              <Link to="/" className="text-gray-700 hover:text-yellow-600 font-semibold">Home</Link>
+              <Link to="/products/t-shirts" className="text-gray-700 hover:text-yellow-600 font-semibold">T-Shirts</Link>
+              <Link to="/products/dresses" className="text-gray-700 hover:text-yellow-600 font-semibold">Dresses</Link>
+              <Link to="/products/ethnic" className="text-gray-700 hover:text-yellow-600 font-semibold">Ethnic Wear</Link>
+              <Link to="/products" className="text-gray-700 hover:text-yellow-600 font-semibold">All Products</Link>
             </div>
           </div>
         )}

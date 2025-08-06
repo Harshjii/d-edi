@@ -158,12 +158,12 @@ const ProductDetail = () => {
             {/* Size Selection */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Size</h3>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 sm:gap-3">
                 {product.sizes.map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
+                    className={`px-3 py-2 sm:px-4 border rounded-lg font-medium transition-colors text-sm sm:text-base ${
                       selectedSize === size
                         ? 'bg-yellow-500 text-white border-yellow-500'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-500'
@@ -178,12 +178,12 @@ const ProductDetail = () => {
             {/* Color Selection */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Color</h3>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
                 {product.colors.map((color) => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 border rounded-lg font-medium transition-colors ${
+                    className={`px-3 py-2 sm:px-4 border rounded-lg font-medium transition-colors text-sm sm:text-base ${
                       selectedColor === color
                         ? 'bg-yellow-500 text-white border-yellow-500'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-500'
@@ -199,17 +199,17 @@ const ProductDetail = () => {
             <div>
               <h3 className="text-lg font-semibold mb-3">Quantity</h3>
               <div className="flex items-center space-x-4">
-                <div className="flex items-center border border-gray-300 rounded-lg">
+                <div className="flex items-center border border-gray-300 rounded-lg bg-white">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 hover:bg-gray-100 rounded-l-lg"
+                    className="p-2 sm:p-3 hover:bg-gray-100 rounded-l-lg transition-colors"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="px-4 py-2 font-medium">{quantity}</span>
+                  <span className="px-4 py-2 sm:py-3 font-medium min-w-[3rem] text-center">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="p-2 hover:bg-gray-100 rounded-r-lg"
+                    className="p-2 sm:p-3 hover:bg-gray-100 rounded-r-lg transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -219,17 +219,17 @@ const ProductDetail = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
               >
                 <ShoppingCart className="w-5 h-5" />
                 <span>Add to Cart</span>
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors relative"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors relative shadow-lg hover:shadow-xl"
                 disabled={loadingBuy}
               >
                 {loadingBuy ? (
@@ -241,20 +241,20 @@ const ProductDetail = () => {
                   'Buy Now'
                 )}
               </button>
-              <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              <button className="sm:w-auto w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md">
                 <Heart className="w-5 h-5 text-gray-600" />
               </button>
             </div>
       {/* Toast pop-up for Add to Cart and errors */}
       {showToast && (
-        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-lg font-semibold animate-fadeIn">
+        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
           {errorMsg}
         </div>
       )}
 
             {/* Features */}
             <div className="border-t pt-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="flex items-center space-x-3">
                   <Truck className="w-5 h-5 text-green-600" />
                   <span className="text-sm text-gray-600">Free Shipping</span>
@@ -273,7 +273,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Product Details Tabs */}
-        <div className="mt-16">
+        <div className="mt-8 sm:mt-16">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-bold mb-6">Product Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -283,7 +283,7 @@ const ProductDetail = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-4">Specifications</h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Category:</span>
                     <span className="font-medium capitalize">{product.category.replace('-', ' ')}</span>

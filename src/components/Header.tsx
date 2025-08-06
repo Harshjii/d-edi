@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import logo from '../assets/lbb.jpg';
-import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User, Search, Heart, ChevronDown } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Menu, X, ShoppingCart, User, Search, Heart, ChevronDown, Home, Package } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { useProductCategories } from '../context/ProductContext';
+import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 
 // ProfileMenu component for user dropdown
 function ProfileMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false);
-  React.useEffect(() => {
+  
+  useEffect(() => {
     if (!open) return;
     const handleClick = (e) => {
       const menu = document.getElementById('profile-menu-dropdown');
@@ -18,6 +19,7 @@ function ProfileMenu({ user, onLogout }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
+
   return (
     <div className="relative">
       <button
@@ -79,7 +81,9 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { cartItems } = useCart();
   const { user, logout } = useAuth();
+  const { products } = useProducts();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
@@ -92,11 +96,16 @@ const Header = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchDisabled, setSearchDisabled] = useState(false);
-  const categories: string[] = useProductCategories();
+  
+  // Get unique categories from Firebase products
+  const categories = React.useMemo(() => {
+    const uniqueCategories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+    return uniqueCategories;
+  }, [products]);
   
   // Track route changes to disable search
   const [lastPath, setLastPath] = useState(window.location.pathname);
-  React.useEffect(() => {
+  useEffect(() => {
     if (window.location.pathname !== lastPath) {
       setSearchDisabled(true);
       setSearchTerm("");
@@ -123,12 +132,15 @@ const Header = () => {
     setIsMenuOpen(false); // Close mobile menu after search
   };
 
+  // YouTube-style navigation links with dynamic categories
   const navigationLinks = [
-    { to: "/", label: "Home" },
-    { to: "/products/t-shirts", label: "T-Shirts" },
-    { to: "/products/dresses", label: "Dresses" },
-    { to: "/products/ethnic", label: "Ethnic Wear" },
-    { to: "/products", label: "All Products" }
+    { to: "/", label: "Home", icon: Home },
+    { to: "/products", label: "All Products", icon: Package },
+    ...categories.map(category => ({
+      to: `/products/${category}`,
+      label: category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' '),
+      icon: Package
+    }))
   ];
 
   return (
@@ -155,22 +167,8 @@ const Header = () => {
             <span className="text-xl lg:text-3xl font-bold text-navy-900 tracking-wide">D-EDI</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
-            {navigationLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="text-gray-700 hover:text-yellow-600 font-semibold transition-colors relative group"
-              >
-                {link.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-600 transition-all group-hover:w-full"></span>
-              </Link>
-            ))}
-          </nav>
-
           {/* Desktop Search */}
-          <div className="hidden lg:flex items-center flex-1 max-w-lg mx-8">
+          <div className="hidden lg:flex items-center flex-1 max-w-2xl mx-8">
             <form className="relative w-full flex space-x-2" onSubmit={handleSearch}>
               <div className="relative flex-1">
                 <input
@@ -188,11 +186,11 @@ const Header = () => {
               <select
                 value={selectedCategory}
                 onChange={e => setSelectedCategory(e.target.value)}
-                className="px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white text-gray-700 font-medium shadow-sm min-w-[120px]"
+                className="px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white text-gray-700 font-medium shadow-sm min-w-[140px]"
               >
                 <option value="">All Categories</option>
                 {categories.map((cat: string) => (
-                  <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                  <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}</option>
                 ))}
               </select>
             </form>
@@ -247,10 +245,57 @@ const Header = () => {
           </div>
         </div>
 
+        {/* YouTube-style Categories Bar - Desktop */}
+        <div className="hidden lg:block border-t border-gray-100">
+          <div className="flex items-center space-x-1 py-3 overflow-x-auto scrollbar-hide">
+            {navigationLinks.slice(0, 8).map((link) => {
+              const Icon = link.icon;
+              const isActive = location.pathname === link.to;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                    isActive 
+                      ? 'bg-yellow-500 text-white shadow-md' 
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-yellow-600'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+            {navigationLinks.length > 8 && (
+              <div className="relative group">
+                <button className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100 hover:text-yellow-600 transition-colors">
+                  <span>More</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 py-2 min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  {navigationLinks.slice(8).map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        className="flex items-center space-x-2 px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-yellow-600 transition-colors"
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{link.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 bg-white animate-slideUp">
-            <div className="py-4 space-y-4">
+          <div className="lg:hidden border-t border-gray-100 bg-white animate-slideDown">
+            <div className="py-4 space-y-4 max-h-[80vh] overflow-y-auto">
               {/* Mobile Search */}
               <div className="px-2">
                 <form className="space-y-3" onSubmit={handleSearch}>
@@ -274,7 +319,7 @@ const Header = () => {
                   >
                     <option value="">All Categories</option>
                     {categories.map((cat: string) => (
-                      <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                      <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}</option>
                     ))}
                   </select>
                 </form>
@@ -282,16 +327,25 @@ const Header = () => {
 
               {/* Mobile Navigation Links */}
               <div className="space-y-1 px-2">
-                {navigationLinks.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-semibold rounded-lg transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+                {navigationLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = location.pathname === link.to;
+                  return (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-semibold transition-colors ${
+                        isActive 
+                          ? 'bg-yellow-500 text-white shadow-md' 
+                          : 'text-gray-700 hover:text-yellow-600 hover:bg-yellow-50'
+                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span>{link.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
 
               {/* Mobile User Section */}
@@ -309,18 +363,20 @@ const Header = () => {
                     </div>
                     <Link
                       to="/dashboard"
-                      className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors"
+                      className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Dashboard
+                      <User className="w-5 h-5" />
+                      <span>Dashboard</span>
                     </Link>
                     {user.role === 'admin' && (
                       <Link
                         to="/admin"
-                        className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors"
+                        className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        Admin Panel
+                        <User className="w-5 h-5" />
+                        <span>Admin Panel</span>
                       </Link>
                     )}
                     <button
@@ -328,9 +384,10 @@ const Header = () => {
                         setIsMenuOpen(false);
                         handleLogout();
                       }}
-                      className="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 font-medium rounded-lg transition-colors"
+                      className="flex items-center space-x-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 font-medium rounded-lg transition-colors"
                     >
-                      Logout
+                      <X className="w-5 h-5" />
+                      <span>Logout</span>
                     </button>
                   </div>
                 ) : (

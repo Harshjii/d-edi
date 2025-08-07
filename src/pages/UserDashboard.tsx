@@ -12,7 +12,8 @@ import {
   where,
   getDocs,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  deleteDoc
 } from 'firebase/firestore';
 
 const UserDashboard = () => {
@@ -37,6 +38,33 @@ const UserDashboard = () => {
     cvv: ''
   });
   const [upiId, setUpiId] = useState('');
+  // Wishlist state
+  const [wishlist, setWishlist] = useState<any[]>([]);
+  const [wishlistLoading, setWishlistLoading] = useState(true);
+  // Fetch wishlist
+  React.useEffect(() => {
+    if (!user?.uid) return;
+    setWishlistLoading(true);
+    const fetchWishlist = async () => {
+      try {
+        const q = query(
+          collection(db, 'wishlists'),
+          where('userId', '==', user.uid)
+        );
+        const snapshot = await getDocs(q);
+        const wishlistData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setWishlist(wishlistData);
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+      } finally {
+        setWishlistLoading(false);
+      }
+    };
+    fetchWishlist();
+  }, [user?.uid]);
 
 
   // Fetch user profile from Firestore
@@ -279,11 +307,49 @@ const UserDashboard = () => {
                 {activeTab === 'wishlist' && (
                   <div>
                     <h2 className="text-2xl font-bold mb-6">My Wishlist</h2>
-                    <div className="text-center py-12">
-                      <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">Your wishlist is empty</p>
-                      <p className="text-gray-400">Start adding items you love!</p>
-                    </div>
+                    {wishlistLoading ? (
+                      <p className="text-gray-500">Loading wishlist...</p>
+                    ) : wishlist.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">Your wishlist is empty</p>
+                        <p className="text-gray-400">Start adding items you love!</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {wishlist.map((item) => (
+                          <div key={item.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-48 object-cover"
+                            />
+                            <div className="p-4">
+                              <h3 className="font-semibold text-gray-900 mb-2">{item.name}</h3>
+                              <p className="text-gray-900 font-bold mb-4">₹{item.price}</p>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => window.location.href = `/product/${item.productId}`}
+                                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium"
+                                >
+                                  View Details
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    deleteDoc(doc(db, 'wishlists', item.id)).then(() => {
+                                      setWishlist(prev => prev.filter(i => i.id !== item.id));
+                                    });
+                                  }}
+                                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

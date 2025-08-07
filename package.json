@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloudinary/react": "^1.14.3",
+    "@cloudinary/url-gen": "^1.21.0",
     "deps": "^1.0.0",
     "firebase": "^12.0.0",
     "lucide-react": "^0.344.0",

@@ -2,6 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Filter, Grid, List, Star, Heart } from 'lucide-react';
 import { useProducts, useProductCategories } from '../context/ProductContext';
+import { useAuth } from '../context/AuthContext';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const ProductListing = () => {
   const { category } = useParams();
@@ -11,10 +14,13 @@ const ProductListing = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   // Removed unused sortBy state
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Get search and sort term from URL
   const searchParams = new URLSearchParams(location.search);
@@ -211,7 +217,33 @@ const ProductListing = () => {
                         alt={product.name}
                         className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <button className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-red-50 transition-colors">
+                      <button 
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          if (!user) {
+                            navigate('/login');
+                            return;
+                          }
+                          try {
+                            await addDoc(collection(db, 'wishlists'), {
+                              userId: user.uid,
+                              productId: product.id,
+                              name: product.name,
+                              price: product.price,
+                              image: product.images[0],
+                              addedAt: new Date()
+                            });
+                            setToastMessage('Added to wishlist!');
+                            setShowToast(true);
+                            setTimeout(() => setShowToast(false), 2000);
+                          } catch (error) {
+                            console.error('Error adding to wishlist:', error);
+                            setToastMessage('Failed to add to wishlist');
+                            setShowToast(true);
+                            setTimeout(() => setShowToast(false), 2000);
+                          }
+                        }}
+                        className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-red-50 transition-colors">
                         <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
                       </button>
                       {product.originalPrice && (
@@ -260,8 +292,34 @@ const ProductListing = () => {
                       <div className="md:w-3/4">
                         <div className="flex justify-between items-start mb-2">
                           <h3 className="text-xl font-semibold text-gray-900">{product.name}</h3>
-                          <button className="p-2 hover:bg-gray-100 rounded-full">
-                            <Heart className="w-4 h-4 text-gray-600" />
+                          <button 
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              if (!user) {
+                                navigate('/login');
+                                return;
+                              }
+                              try {
+                                await addDoc(collection(db, 'wishlists'), {
+                                  userId: user.uid,
+                                  productId: product.id,
+                                  name: product.name,
+                                  price: product.price,
+                                  image: product.images[0],
+                                  addedAt: new Date()
+                                });
+                                setToastMessage('Added to wishlist!');
+                                setShowToast(true);
+                                setTimeout(() => setShowToast(false), 2000);
+                              } catch (error) {
+                                console.error('Error adding to wishlist:', error);
+                                setToastMessage('Failed to add to wishlist');
+                                setShowToast(true);
+                                setTimeout(() => setShowToast(false), 2000);
+                              }
+                            }}
+                            className="p-2 hover:bg-gray-100 rounded-full">
+                            <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
                           </button>
                         </div>
                         <p className="text-gray-600 mb-4">{product.description}</p>
@@ -300,6 +358,12 @@ const ProductListing = () => {
           </div>
         </div>
       </div>
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 };

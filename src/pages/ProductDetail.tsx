@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Heart, ShoppingCart, Plus, Minus, Truck, RotateCcw, Shield } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
+import { Review } from '../types/review';
+import { uploadToCloudinary } from '../utils/cloudinary';
+
+interface ReviewFormData {
+  rating: number;
+  comment: string;
+  media: File[];
+}
 
 const ProductDetail = () => {
   const { id } = useParams();
   const { getProductById } = useProducts();
   const { addToCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const product = getProductById(id || '');
 
   const [selectedImage, setSelectedImage] = useState(0);
@@ -17,6 +31,104 @@ const ProductDetail = () => {
   const [showToast, setShowToast] = useState(false);
   const [loadingBuy, setLoadingBuy] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewForm, setReviewForm] = useState<ReviewFormData>({
+    rating: 5,
+    comment: '',
+    media: []
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Fetch reviews
+  useEffect(() => {
+    if (id) {
+      fetchReviews();
+    }
+  }, [id]);
+
+  const fetchReviews = async () => {
+    try {
+      const q = query(
+        collection(db, 'reviews'),
+        where('productId', '==', id),
+        where('status', '==', 'approved'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      const reviewsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate()
+      })) as Review[];
+      setReviews(reviewsData);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setErrorMsg('Failed to load reviews');
+      setShowToast(true);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    setSubmittingReview(true);
+    try {
+      // Upload media files to Cloudinary
+      const mediaUrls = await Promise.all(
+        reviewForm.media.map(async (file) => {
+          const result = await uploadToCloudinary(file);
+          return {
+            type: result.type,
+            url: result.url,
+            publicId: result.publicId
+          };
+        })
+      );
+
+      // Add review to Firestore
+      await addDoc(collection(db, 'reviews'), {
+        productId: id,
+        userId: user.uid,
+        userName: user.displayName || 'Anonymous',
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+        media: mediaUrls,
+        createdAt: new Date(),
+        status: 'pending'
+      });
+
+      setShowReviewModal(false);
+      setReviewForm({ rating: 5, comment: '', media: [] });
+      setErrorMsg('Review submitted for approval!');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      setErrorMsg('Failed to submit review');
+      setShowToast(true);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!user) return;
+    
+    try {
+      await deleteDoc(doc(db, 'reviews', reviewId));
+      setReviews(prev => prev.filter(review => review.id !== reviewId));
+      setErrorMsg('Review deleted successfully');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      setErrorMsg('Failed to delete review');
+      setShowToast(true);
+    }
+  };
   // Removed unused variables: redirectCheckout, productDetail, navigate
 
   if (!product) {
@@ -28,6 +140,12 @@ const ProductDetail = () => {
   }
 
   const handleAddToCart = () => {
+    if (!product.inStock) {
+      setErrorMsg('This product is out of stock');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+      return;
+    }
     if (!selectedSize || !selectedColor) {
       setErrorMsg('Please select size and color');
       setShowToast(true);
@@ -42,7 +160,7 @@ const ProductDetail = () => {
       size: selectedSize,
       color: selectedColor,
       shippingCharges: product.shippingCharges ?? 0,
-      ...(quantity ? { quantity } : {})
+      quantity: quantity
     });
     setErrorMsg('Product added to cart!');
     setShowToast(true);
@@ -50,6 +168,12 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
+    if (!product.inStock) {
+      setErrorMsg('This product is out of stock');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+      return;
+    }
     if (!selectedSize || !selectedColor) {
       setErrorMsg('Please select size and color');
       setShowToast(true);
@@ -64,13 +188,13 @@ const ProductDetail = () => {
       size: selectedSize,
       color: selectedColor,
       shippingCharges: product.shippingCharges ?? 0,
-      ...(quantity ? { quantity } : {})
+      quantity: quantity
     });
     setLoadingBuy(true);
     setTimeout(() => {
       setLoadingBuy(false);
-      window.location.href = '/checkout';
-    }, 1500);
+      navigate('/checkout');
+    }, 500);
   };
 
   return (
@@ -214,7 +338,11 @@ const ProductDetail = () => {
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                <span className="text-green-600 font-medium">In Stock</span>
+                {product.inStock ? (
+                  <span className="text-green-600 font-medium">In Stock</span>
+                ) : (
+                  <span className="text-red-600 font-medium">Out of Stock</span>
+                )}
               </div>
             </div>
 
@@ -222,15 +350,24 @@ const ProductDetail = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+                disabled={!product.inStock}
+                className={`flex-1 px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg ${
+                  !product.inStock 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-yellow-500 hover:bg-yellow-600 text-white hover:shadow-xl'
+                }`}
               >
                 <ShoppingCart className="w-5 h-5" />
                 <span>Add to Cart</span>
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors relative shadow-lg hover:shadow-xl"
-                disabled={loadingBuy}
+                className={`flex-1 px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors relative shadow-lg ${
+                  !product.inStock || loadingBuy
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-red-600 hover:bg-red-700 text-white hover:shadow-xl'
+                }`}
+                disabled={!product.inStock || loadingBuy}
               >
                 {loadingBuy ? (
                   <span className="flex items-center justify-center w-full">
@@ -241,10 +378,153 @@ const ProductDetail = () => {
                   'Buy Now'
                 )}
               </button>
-              <button className="sm:w-auto w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md">
+              <button 
+                onClick={async () => {
+                  if (!user) {
+                    navigate('/login');
+                    return;
+                  }
+                  try {
+                    await addDoc(collection(db, 'wishlists'), {
+                      userId: user.uid,
+                      productId: product.id,
+                      name: product.name,
+                      price: product.price,
+                      image: product.images[0],
+                      addedAt: new Date()
+                    });
+                    setErrorMsg('Added to wishlist!');
+                    setShowToast(true);
+                    setTimeout(() => setShowToast(false), 2000);
+                  } catch (error) {
+                    console.error('Error adding to wishlist:', error);
+                    setErrorMsg('Failed to add to wishlist');
+                    setShowToast(true);
+                    setTimeout(() => setShowToast(false), 2000);
+                  }
+                }}
+                className="sm:w-auto w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md">
                 <Heart className="w-5 h-5 text-gray-600" />
               </button>
             </div>
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setShowReviewModal(false)}></div>
+            
+            <div className="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+              <div className="px-6 py-4 border-b">
+                <h3 className="text-lg font-semibold">Write a Review</h3>
+              </div>
+              
+              <form onSubmit={handleSubmitReview} className="p-6">
+                {/* Rating */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                  <div className="flex space-x-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          className={`w-8 h-8 ${
+                            star <= reviewForm.rating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-300'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Comment */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+                  <textarea
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                    required
+                  ></textarea>
+                </div>
+
+                {/* Media Upload */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add Photos/Videos (optional)
+                  </label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setReviewForm(prev => ({ ...prev, media: [...prev.media, ...files] }));
+                    }}
+                    className="w-full"
+                  />
+                  {reviewForm.media.length > 0 && (
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {reviewForm.media.map((file, index) => (
+                        <div key={index} className="relative">
+                          {file.type.startsWith('image/') ? (
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-24 object-cover rounded"
+                            />
+                          ) : (
+                            <video
+                              src={URL.createObjectURL(file)}
+                              className="w-full h-24 object-cover rounded"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReviewForm(prev => ({
+                                ...prev,
+                                media: prev.media.filter((_, i) => i !== index)
+                              }));
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
+                  >
+                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast pop-up for Add to Cart and errors */}
       {showToast && (
         <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
@@ -272,8 +552,87 @@ const ProductDetail = () => {
           </div>
         </div>
 
+        {/* Reviews Section */}
+        <div className="mt-8">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Reviews</h2>
+              {user && (
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Add Review</span>
+                </button>
+              )}
+            </div>
+            
+            {/* Reviews List */}
+            <div className="space-y-6">
+              {reviews.map((review) => (
+                <div key={review.id} className="border-b pb-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-start space-x-4">
+                      <div className="flex flex-col">
+                        <span className="font-semibold">{review.userName}</span>
+                        <div className="flex items-center space-x-1 mt-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-gray-500 text-sm mt-1">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    {user?.uid === review.userId && (
+                      <button
+                        onClick={() => handleDeleteReview(review.id)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-gray-700 mb-4">{review.comment}</p>
+                  {review.media && review.media.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {review.media.map((item, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                          {item.type === 'image' ? (
+                            <img
+                              src={item.url}
+                              alt={`Review ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={item.url}
+                              controls
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {reviews.length === 0 && (
+                <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to review!</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Product Details Tabs */}
-        <div className="mt-8 sm:mt-16">
+        <div className="mt-8">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-bold mb-6">Product Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

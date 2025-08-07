@@ -13,7 +13,7 @@ export interface CartItem {
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   removeFromCart: (id: string, size: string, color: string) => void;
   updateQuantity: (id: string, size: string, color: string, quantity: number) => void;
   clearCart: () => void;
@@ -36,7 +36,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (item: Omit<CartItem, 'quantity'>) => {
+  const addToCart = (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(
         cartItem => cartItem.id === item.id && cartItem.size === item.size && cartItem.color === item.color
@@ -45,12 +45,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existingItem) {
         return prevItems.map(cartItem =>
           cartItem.id === item.id && cartItem.size === item.size && cartItem.color === item.color
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            ? { ...cartItem, quantity: cartItem.quantity + (item.quantity || 1) }
             : cartItem
         );
       } else {
         // Default to 0 if not provided
-        return [...prevItems, { ...item, quantity: 1, shippingCharges: item.shippingCharges ?? 0 }];
+        return [...prevItems, { ...item, quantity: item.quantity || 1, shippingCharges: item.shippingCharges ?? 0 }];
       }
     });
   };

@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, MapPin, User, Phone, Mail } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useProducts } from '../context/ProductContext';
 import { auth , db } from '../firebase'; // adjust the path based on your structure
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
-
 const Checkout = () => {
-  const { cartItems, getTotalPrice, clearCart } = useCart();
+  const { cartItems, clearCart } = useCart();
   const { user } = useAuth();
+  const { getProductById } = useProducts();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -24,57 +25,245 @@ const Checkout = () => {
     paymentMethod: 'card'
   });
 
+  // Notification state
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Add loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+
+
+  // Check if cart is loaded
+  useEffect(() => {
+    // Give some time for cart context to load
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [cartItems]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  // Function to calculate total price and check stock
+    const calculateOrderDetails = () => {
+    if (!cartItems || cartItems.length === 0) {
+      return {
+        subtotal: 0,
+        gst: 0,
+        shippingCharges: 0,
+        total: 0,
+        hasOutOfStock: false
+      };
+    }
 
-  const subtotal = getTotalPrice();
-  const gst = Math.round(subtotal * 0.18);
-  const total = subtotal + gst;
+    // Get maximum shipping charge
+    const shippingCharges = Math.max(...cartItems.map(item => item.shippingCharges || 0));
 
-  const order = {
-    customerName: `${formData.firstName} ${formData.lastName}`,
-    email: formData.email,
-    phone: formData.phone,
-    address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
-    paymentMethod: formData.paymentMethod,
-    date: Timestamp.now(),
-    amount: total,
-    status: 'Processing',
-    items: cartItems.map(item => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity
-    }))
+    // Calculate subtotal and check stock
+    const { subtotal, hasOutOfStock } = cartItems.reduce((acc, item) => {
+      const itemPrice = Number(item.price) || 0;
+      const itemQuantity = Number(item.quantity) || 0;
+      const product = getProductById(item.id);
+      
+      return {
+        subtotal: acc.subtotal + (itemPrice * itemQuantity),
+        hasOutOfStock: acc.hasOutOfStock || !product?.inStock
+      };
+    }, { subtotal: 0, hasOutOfStock: false });
+
+    const gst = Math.round(subtotal * 0.18);
+    const total = subtotal + gst + shippingCharges;
+
+    return {
+      subtotal,
+      gst,
+      shippingCharges,
+      total,
+      hasOutOfStock
+    };
   };
 
-  try {
-    await addDoc(collection(db, 'orders'), order);
-    alert('Order placed successfully!');
-    clearCart();
-    navigate('/dashboard');
-  } catch (error) {
-    console.error('Error placing order:', error);
-    alert('Something went wrong. Please try again.');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    if (!user) {
+      setNotification({ type: 'error', message: 'You must be logged in to place an order.' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!cartItems || cartItems.length === 0) {
+      setNotification({ type: 'error', message: 'Your cart is empty.' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Get order details
+    const orderDetails = calculateOrderDetails();
+    
+    if (orderDetails.hasOutOfStock) {
+      setNotification({ type: 'error', message: 'Some items in your cart are out of stock' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validation - ensure we have a valid total
+    if (orderDetails.total <= 0) {
+      setNotification({ type: 'error', message: 'Invalid order amount. Please check your cart.' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Debug logs
+    console.log('cartItems:', cartItems);
+    console.log('Order details:', orderDetails);
+
+    const order = {
+      // User and Order Identification
+      userId: user.uid,
+      orderId: Math.random().toString(36).substring(2, 15),
+      
+      // Customer Information
+      customerName: `${formData.firstName} ${formData.lastName}`,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+
+      // Address Information
+      shippingAddress: {
+        fullAddress: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        formattedAddress: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`
+      },
+
+      // Payment and Status
+      paymentMethod: formData.paymentMethod,
+      paymentStatus: formData.paymentMethod === 'cod' ? 'Pending' : 'Paid',
+      date: Timestamp.now(),
+      status: 'Processing',
+      lastUpdated: Timestamp.now(),
+
+      // Order Details
+      amount: orderDetails.total,
+      subtotal: orderDetails.subtotal,
+      gst: orderDetails.gst,
+      shippingCharges: orderDetails.shippingCharges,
+      
+      // Order Summary
+      totalItems: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
+      orderNotes: '',
+      items: cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 0,
+        size: item.size || '',
+        color: item.color || '',
+        image: item.image || '',
+        subtotal: (Number(item.price) || 0) * (Number(item.quantity) || 0),
+        shippingCharges: item.shippingCharges || 0
+      })),
+      
+      // Track Order History
+      orderHistory: [{
+        status: 'Processing',
+        date: Timestamp.now(),
+        comment: 'Order placed successfully'
+      }]
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'orders'), order);
+      console.log('Order created with ID:', docRef.id);
+      
+      setNotification({ type: 'success', message: 'Order placed successfully!' });
+      clearCart();
+      
+      setTimeout(() => {
+        setNotification(null);
+        navigate('/dashboard');
+      }, 2000);
+    } catch (error) {
+      console.error('Error placing order:', error);
+      setNotification({ type: 'error', message: 'Something went wrong. Please try again.' });
+    }
+    
+    setIsSubmitting(false);
+  };
+
+  // Auto-hide notification after 3 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const orderDetails = calculateOrderDetails();
+
+  // Show loading spinner while cart is loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700">Loading checkout...</h2>
+        </div>
+      </div>
+    );
   }
-};
 
-
-
-  const subtotal = getTotalPrice();
-  const gst = Math.round(subtotal * 0.18);
-  const total = subtotal + gst;
+  // Show message if cart is empty (only after loading is complete)
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-4">Your cart is empty</h2>
+          <button
+            onClick={() => navigate('/products')}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Continue Shopping
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Enhanced Notification Pop-up */}
+      {notification && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6">
+          <div
+            className={`px-6 py-4 rounded-lg shadow-lg text-white font-medium transition-all transform animate-bounce
+              ${notification.type === 'success' 
+                ? 'bg-green-500 border-l-4 border-green-600' 
+                : 'bg-red-500 border-l-4 border-red-600'
+              }`}
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">
+                {notification.type === 'success' ? '✓' : '⚠'}
+              </span>
+              <span>{notification.message}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Checkout Form */}
           <div className="space-y-6">
@@ -109,7 +298,6 @@ const Checkout = () => {
                     />
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <input
@@ -121,7 +309,6 @@ const Checkout = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <input
@@ -133,7 +320,6 @@ const Checkout = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                   <input
@@ -145,7 +331,6 @@ const Checkout = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
@@ -189,7 +374,7 @@ const Checkout = () => {
                 </div>
               </form>
             </div>
-
+            
             {/* Payment Method */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-6 flex items-center">
@@ -239,12 +424,11 @@ const Checkout = () => {
               </div>
             </div>
           </div>
-
+          
           {/* Order Summary */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
-              
               <div className="space-y-4 mb-6">
                 {cartItems.map((item) => (
                   <div key={`${item.id}-${item.size}-${item.color}`} className="flex items-center space-x-4">
@@ -258,35 +442,47 @@ const Checkout = () => {
                       <p className="text-sm text-gray-600">{item.size}, {item.color}</p>
                       <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                     </div>
-                    <span className="font-medium">₹{item.price * item.quantity}</span>
+                    <span className="font-medium">₹{(Number(item.price) * Number(item.quantity)) || 0}</span>
                   </div>
                 ))}
               </div>
-
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>₹{subtotal}</span>
+                  <span>₹{orderDetails.subtotal}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span className="text-green-600">Free</span>
+                  <span>₹{orderDetails.shippingCharges}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>GST (18%)</span>
-                  <span>₹{gst}</span>
+                  <span>₹{orderDetails.gst}</span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>₹{total}</span>
+                  <span>₹{orderDetails.total}</span>
                 </div>
+                {orderDetails.hasOutOfStock && (
+                  <div className="text-red-600 text-sm font-medium">
+                    Some items in your cart are out of stock
+                  </div>
+                )}
               </div>
-
               <button
                 onClick={handleSubmit}
-                className="w-full mt-6 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                disabled={isSubmitting || orderDetails.hasOutOfStock}
+                className={`w-full mt-6 py-3 rounded-lg font-semibold transition-colors ${
+                  isSubmitting || orderDetails.hasOutOfStock
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                }`}
               >
-                Place Order
+                {isSubmitting 
+                  ? 'Placing Order...' 
+                  : orderDetails.hasOutOfStock 
+                    ? 'Some items are out of stock'
+                    : 'Place Order'}
               </button>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -17,10 +18,38 @@ const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const auth = getAuth();
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      if (result.user) {
+        // Create or update user document in Firestore
+        const userRef = doc(db, 'users', result.user.uid);
+        const userData = {
+          name: result.user.displayName || '',
+          email: result.user.email || '',
+          role: 'user',
+          createdAt: new Date(),
+          phone: result.user.phoneNumber || '',
+          photoURL: result.user.photoURL || '',
+          lastLogin: new Date()
+        };
+
+        await setDoc(userRef, userData, { merge: true });
+        navigate('/');
+      }
+    } catch (err: any) {
+      console.error('Google sign in error:', err);
+      setError('Failed to sign in with Google');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
+    setLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -34,28 +63,27 @@ const Register = () => {
       return;
     }
 
-    setLoading(true);
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      // Add user to Firestore with default role 'user'
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      // Create user document in Firestore
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         name: formData.name,
         email: formData.email,
         role: 'user',
+        createdAt: new Date(),
+        lastLogin: new Date()
       });
+
       setLoading(false);
-      // Add a short delay to ensure Firestore write is visible
-      setTimeout(() => {
-        navigate('/'); // Redirect to dashboard (home)
-      }, 500);
+      navigate('/');
     } catch (err: any) {
       console.error('Registration error:', err);
-      if (err.code === 'permission-denied' || err.message?.includes('Missing or insufficient permissions')) {
-        setError('Registration succeeded, but your account could not be fully set up due to Firestore permissions. Please contact support or check your Firestore rules.');
-      } else {
-        setError(err.message || 'Registration failed. Please try again.');
-      }
+      setError(err.message || 'Failed to create account');
       setLoading(false);
     }
   };

@@ -1,26 +1,33 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Filter, Grid, List, Star, Heart } from 'lucide-react';
-import { useProducts, useProductCategories } from '../context/ProductContext';
+import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const ProductListing = () => {
   const { category } = useParams();
   const location = useLocation();
-  const { products, getProductsByCategory } = useProducts();
-  const categories = useProductCategories();
+  const { products } = useProducts();
+  const [categories, setCategories] = useState([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  // Removed unused sortBy state
   const navigate = useNavigate();
   const { user } = useAuth();
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState(category || 'all');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const snapshot = await getDocs(collection(db, 'categories'));
+      setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    };
+    fetchCategories();
+  }, []);
 
   // Get search and sort term from URL
   const searchParams = new URLSearchParams(location.search);
@@ -70,10 +77,10 @@ const ProductListing = () => {
         </div>
 
         {/* Category Tabs */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 overflow-x-auto pb-2">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
               selectedCategory === 'all'
                 ? 'bg-yellow-500 text-white shadow-md'
                 : 'text-gray-700 hover:bg-gray-100'
@@ -83,13 +90,13 @@ const ProductListing = () => {
           </button>
           {categories.map(cat => (
             <button
-              key={cat}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                selectedCategory === cat ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'
+              key={cat.id}
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap ${
+                selectedCategory === cat.name ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'
               }`}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => setSelectedCategory(cat.name)}
             >
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
             </button>
           ))}
         </div>

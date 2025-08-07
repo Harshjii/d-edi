@@ -99,10 +99,3 @@ export const useProducts = () => {
   }
   return context;
 };
-
-// In ProductContext.tsx
-export const useProductCategories = () => {
-  const { products } = useProducts();
-  // Get unique categories
-  return Array.from(new Set(products.map(p => p.category))).filter(Boolean);
-};

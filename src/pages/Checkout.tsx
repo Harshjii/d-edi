@@ -6,8 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductContext';
 import { auth , db } from '../firebase'; // adjust the path based on your structure
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import QRImage from '../assets/payment-qr.png'; // Place your QR code image in /src/assets/payment-qr.png
-import { doc, updateDoc } from 'firebase/firestore';
 
 const Checkout = () => {
   const { cartItems, clearCart } = useCart();
@@ -24,8 +22,10 @@ const Checkout = () => {
     city: '',
     state: '',
     pincode: '',
-    paymentMethod: 'card'
+    paymentMethod: 'upi'
   });
+  
+  const [formErrors, setFormErrors] = useState({});
 
   // Notification state
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -33,13 +33,24 @@ const Checkout = () => {
   // Add loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Add state for transaction id and payment proof
-  const [transactionId, setTransactionId] = useState('');
-  const [showQR, setShowQR] = useState(false);
-
-  // Add state for payment modal
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.firstName) errors.firstName = "First name is required";
+    if (!formData.lastName) errors.lastName = "Last name is required";
+    if (!formData.email) errors.email = "Email is required";
+    if (!/^\d{10}$/.test(formData.phone)) errors.phone = "Phone number must be 10 digits";
+    if (!formData.address) errors.address = "Address is required";
+    if (!formData.city) errors.city = "City is required";
+    if (!formData.state) errors.state = "State is required";
+    if (!/^\d{6}$/.test(formData.pincode)) errors.pincode = "Pincode must be 6 digits";
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
 
   // Check if cart is loaded
   useEffect(() => {
@@ -49,14 +60,14 @@ const Checkout = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, [cartItems]);
+  
+  useEffect(() => {
+    validateForm();
+  }, [formData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (name === 'paymentMethod') {
-      setShowQR(value === 'upi' || value === 'card');
-      setTransactionId('');
-    }
   };
 
   // Function to calculate total price and check stock
@@ -98,10 +109,28 @@ const Checkout = () => {
     };
   };
 
-  // Update handleSubmit to show modal for UPI/Card
+  const handlePlaceOrderClick = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateForm() && !isSubmitting) {
+        if (formData.paymentMethod === 'upi') {
+            const orderDetails = calculateOrderDetails();
+            const upiUrl = `upi://pay?pa=jdeep9965@okaxis&pn=D-EDI&am=${orderDetails.total}&tn=Order%20for%20D-EDI`;
+            setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiUrl)}`);
+        }
+      setShowPaymentModal(true);
+    }
+  };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.paymentMethod === 'upi' && !transactionId) {
+        setNotification({ type: 'error', message: 'Please enter the UPI transaction ID.' });
+        return;
+    }
+    if (!validateForm()) return;
     setIsSubmitting(true);
+    setShowPaymentModal(false);
 
     if (!user) {
       setNotification({ type: 'error', message: 'You must be logged in to place an order.' });
@@ -115,23 +144,18 @@ const Checkout = () => {
       return;
     }
 
+    // Get order details
     const orderDetails = calculateOrderDetails();
-
+    
     if (orderDetails.hasOutOfStock) {
       setNotification({ type: 'error', message: 'Some items in your cart are out of stock' });
       setIsSubmitting(false);
       return;
     }
 
+    // Validation - ensure we have a valid total
     if (orderDetails.total <= 0) {
       setNotification({ type: 'error', message: 'Invalid order amount. Please check your cart.' });
-      setIsSubmitting(false);
-      return;
-    }
-
-    // If UPI or Card, show payment modal for QR and transaction ID
-    if ((formData.paymentMethod === 'upi' || formData.paymentMethod === 'card') && !transactionId.trim()) {
-      setShowPaymentModal(true);
       setIsSubmitting(false);
       return;
     }
@@ -163,8 +187,9 @@ const Checkout = () => {
 
       // Payment and Status
       paymentMethod: formData.paymentMethod,
-      paymentStatus: formData.paymentMethod === 'cod' ? 'Pending' : 'Pending Approval',
-      transactionId: formData.paymentMethod === 'upi' || formData.paymentMethod === 'card' ? transactionId.trim() : '',
+      paymentStatus: "Pending Approval",
+      transactionId: transactionId,
+      approvalStatus: 'pending',
       date: Timestamp.now(),
       status: 'Processing',
       lastUpdated: Timestamp.now(),
@@ -195,8 +220,7 @@ const Checkout = () => {
         status: 'Processing',
         date: Timestamp.now(),
         comment: 'Order placed successfully'
-      }],
-      approvalStatus: formData.paymentMethod === 'cod' ? 'approved' : 'pending' // For admin approval
+      }]
     };
 
     try {
@@ -292,7 +316,7 @@ const Checkout = () => {
                 <MapPin className="w-5 h-5 mr-2" />
                 Shipping Information
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handlePlaceOrderClick} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
@@ -304,6 +328,7 @@ const Checkout = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     />
+                    {formErrors.firstName && <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
@@ -315,6 +340,7 @@ const Checkout = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     />
+                     {formErrors.lastName && <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>}
                   </div>
                 </div>
                 <div>
@@ -327,6 +353,7 @@ const Checkout = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
+                   {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
@@ -338,6 +365,7 @@ const Checkout = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
+                  {formErrors.phone && <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -349,6 +377,7 @@ const Checkout = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
+                  {formErrors.address && <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
@@ -361,6 +390,7 @@ const Checkout = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     />
+                    {formErrors.city && <p className="text-red-500 text-xs mt-1">{formErrors.city}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
@@ -378,6 +408,7 @@ const Checkout = () => {
                       <option value="tamil-nadu">Tamil Nadu</option>
                       <option value="gujarat">Gujarat</option>
                     </select>
+                    {formErrors.state && <p className="text-red-500 text-xs mt-1">{formErrors.state}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
@@ -389,6 +420,7 @@ const Checkout = () => {
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     />
+                    {formErrors.pincode && <p className="text-red-500 text-xs mt-1">{formErrors.pincode}</p>}
                   </div>
                 </div>
               </form>
@@ -404,21 +436,6 @@ const Checkout = () => {
                 <div className="flex items-center">
                   <input
                     type="radio"
-                    id="card"
-                    name="paymentMethod"
-                    value="card"
-                    checked={formData.paymentMethod === 'card'}
-                    onChange={handleInputChange}
-                    className="mr-3"
-                  />
-                  <label htmlFor="card" className="flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Credit/Debit Card (Manual Approval)
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
                     id="upi"
                     name="paymentMethod"
                     value="upi"
@@ -426,7 +443,7 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     className="mr-3"
                   />
-                  <label htmlFor="upi">UPI (Manual Approval)</label>
+                  <label htmlFor="upi">UPI</label>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -441,22 +458,6 @@ const Checkout = () => {
                   <label htmlFor="cod">Cash on Delivery</label>
                 </div>
               </div>
-              {/* Show QR and transaction id input if UPI or Card */}
-              {showQR && (
-                <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex flex-col items-center">
-                  <img src={QRImage} alt="Scan to Pay" className="w-48 h-48 mb-4" />
-                  <p className="text-yellow-700 font-semibold mb-2">Scan this QR code to pay</p>
-                  <p className="text-gray-600 text-sm mb-4">After payment, enter your transaction ID below for admin approval.</p>
-                  <input
-                    type="text"
-                    value={transactionId}
-                    onChange={e => setTransactionId(e.target.value)}
-                    placeholder="Enter Transaction ID"
-                    className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                    required={showQR}
-                  />
-                </div>
-              )}
             </div>
           </div>
           
@@ -499,16 +500,16 @@ const Checkout = () => {
                   <span>₹{orderDetails.total}</span>
                 </div>
                 {orderDetails.hasOutOfStock && (
-                  <div className="text-red-600 text-sm font-medium">
+                  <div className="text-red-500 text-sm font-medium">
                     Some items in your cart are out of stock
                   </div>
                 )}
               </div>
               <button
-                onClick={handleSubmit}
-                disabled={isSubmitting || orderDetails.hasOutOfStock}
+                onClick={handlePlaceOrderClick}
+                disabled={isSubmitting || orderDetails.hasOutOfStock || Object.keys(formErrors).length > 0}
                 className={`w-full mt-6 py-3 rounded-lg font-semibold transition-colors ${
-                  isSubmitting || orderDetails.hasOutOfStock
+                  isSubmitting || orderDetails.hasOutOfStock || Object.keys(formErrors).length > 0
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-yellow-500 hover:bg-yellow-600 text-white'
                 }`}
@@ -523,58 +524,41 @@ const Checkout = () => {
           </div>
         </div>
       </div>
-
-      {/* Payment Modal for UPI/Card */}
-      {showPaymentModal && (
+       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full relative">
-            <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl"
-              onClick={() => setShowPaymentModal(false)}
-            >
-              &times;
-            </button>
-            <div className="flex flex-col items-center">
-              <img src={QRImage} alt="Scan to Pay" className="w-48 h-48 mb-4" />
-              <p className="text-yellow-700 font-semibold mb-2">Scan this QR code to pay</p>
-              <p className="text-gray-600 text-sm mb-4 text-center">
-                After payment, enter your transaction ID below for admin approval.
-              </p>
-              <input
-                type="text"
-                value={transactionId}
-                onChange={e => setTransactionId(e.target.value)}
-                placeholder="Enter Transaction ID"
-                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 mb-4"
-                required
-              />
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!transactionId.trim()) return;
-                    setShowPaymentModal(false);
-                    setIsSubmitting(true);
-                    // Call handleSubmit again to proceed with order placement
-                    // but now transactionId is filled
-                    // Use a setTimeout to allow modal to close before proceeding
-                    setTimeout(() => {
-                      // Simulate form submission
-                      const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-                      handleSubmit(fakeEvent);
-                    }, 100);
-                  }}
-                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  disabled={!transactionId.trim()}
-                >
-                  Submit Transaction ID
-                </button>
-              </div>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-2 sm:mx-4 relative">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowPaymentModal(false)}>&times;</button>
+            <h3 className="text-xl font-bold mb-4 px-4 pt-6 sm:pt-8">Complete Your Payment</h3>
+            <div className="px-4 pb-6 space-y-4">
+              {formData.paymentMethod === 'upi' && (
+                <div className="text-center">
+                  <p className="mb-2">Scan the QR code to pay</p>
+                  {qrCodeUrl && <img src={qrCodeUrl} alt="UPI QR Code" className="mx-auto" />}
+                   <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">UPI Transaction ID</label>
+                    <input
+                      type="text"
+                      value={transactionId}
+                      onChange={(e) => setTransactionId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      placeholder="Enter UPI Transaction ID"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+              {formData.paymentMethod === 'cod' && (
+                <div className="text-center">
+                  <p>You have selected Cash on Delivery. Click "Confirm Order" to place your order.</p>
+                </div>
+              )}
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                disabled={isSubmitting || (formData.paymentMethod === 'upi' && !transactionId)}
+              >
+                {isSubmitting ? 'Confirming...' : 'Confirm Order'}
+              </button>
             </div>
           </div>
         </div>

@@ -1,10 +1,10 @@
 // Get environment variables with fallbacks
 const getEnvVariable = (key: string, fallback: string = ''): string => {
   // Try Vite env
-  if (import.meta.env && import.meta.env[`VITE_${key}`]) {
+  if (import.meta.env[`VITE_${key}`]) {
     return import.meta.env[`VITE_${key}`];
   }
-  // Fallback to window._env_ if defined (for some deployments)
+  // Fallback to window._env_ if defined
   if (typeof window !== 'undefined' && window._env_ && window._env_[key]) {
     return window._env_[key];
   }
@@ -13,6 +13,7 @@ const getEnvVariable = (key: string, fallback: string = ''): string => {
 
 const CLOUDINARY_UPLOAD_PRESET = getEnvVariable('CLOUDINARY_UPLOAD_PRESET', '');
 const CLOUDINARY_CLOUD_NAME = getEnvVariable('CLOUDINARY_CLOUD_NAME', '');
+const CLOUDINARY_API_KEY = getEnvVariable('CLOUDINARY_API_KEY', '');
 
 // Validate config before upload
 export const uploadToCloudinary = async (file: File, folder: string = 'general') => {
@@ -34,6 +35,7 @@ export const uploadToCloudinary = async (file: File, folder: string = 'general')
       }
     );
 
+    // Try to get error message from Cloudinary response
     if (!response.ok) {
       let errorMsg = 'Upload failed';
       try {
@@ -75,7 +77,5 @@ export const optimizeImage = (url: string, options: { width?: number; height?: n
   const transformation = transformations.join(',');
   const imagePath = url.split('/upload/')[1];
 
-  return transformation
-    ? `${base}${transformation}/${imagePath}`
-    : url;
+  return `${base}${transformation}/${imagePath}`;
 };

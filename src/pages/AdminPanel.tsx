@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, X, Upload, Save, Search, ChevronLeft, ChevronRight, Check, CheckCircle, XCircle, Eye, MessageSquare, DollarSign } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, X, Upload, Save, Search, ChevronLeft, ChevronRight, Check, CheckCircle, XCircle, Eye, MessageSquare, DollarSign, Tag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductContext';
 import { db } from '../firebase';
-import { collection, getDocs, query, orderBy, limit, startAfter, DocumentSnapshot, where, Timestamp, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, startAfter, DocumentSnapshot, where, Timestamp, doc, updateDoc, deleteDoc, getDoc, addDoc } from 'firebase/firestore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { deleteUser } from 'firebase/auth';
@@ -21,6 +21,11 @@ const AdminPanel = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pendingReviews, setPendingReviews] = useState([]);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState("");
+
 
   // Users pagination
   const [usersLoading, setUsersLoading] = useState(false);
@@ -66,6 +71,9 @@ const AdminPanel = () => {
   // Toast notification state
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  
+  const [orderStatus, setOrderStatus] = useState("");
+
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -74,6 +82,7 @@ const AdminPanel = () => {
     }
     fetchOrders();
     fetchUsers();
+    fetchCategories();
     if (activeTab === 'reviews') fetchPendingReviews();
   }, [user, navigate, activeTab]);
 
@@ -95,6 +104,37 @@ const AdminPanel = () => {
       setOrders(ordersData);
     } catch (error) {
       console.error('Error fetching orders:', error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const categoriesRef = collection(db, 'categories');
+      const snapshot = await getDocs(categoriesRef);
+      const categoriesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategory) return;
+    try {
+      const docRef = await addDoc(collection(db, 'categories'), { name: newCategory });
+      setCategories([...categories, { id: docRef.id, name: newCategory }]);
+      setNewCategory('');
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId) => {
+    try {
+      await deleteDoc(doc(db, 'categories', categoryId));
+      setCategories(categories.filter(c => c.id !== categoryId));
+    } catch (error) {
+      console.error('Error deleting category:', error);
     }
   };
 
@@ -320,13 +360,15 @@ const AdminPanel = () => {
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'reviews', label: 'Reviews', icon: MessageSquare },
-    { id: 'transactions', label: 'Transactions', icon: DollarSign }
+    { id: 'transactions', label: 'Transactions', icon: DollarSign },
+    { id: 'categories', label: 'Categories', icon: Tag }
   ];
 
   const totalUsersPages = Math.ceil(totalUsers / usersPerPage);
 
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
+    setOrderStatus(order.status);
     setShowOrderModal(true);
   };
 
@@ -354,41 +396,44 @@ const AdminPanel = () => {
   };
 
   // Add Mark as Delivered handler
-  const handleMarkAsDelivered = async (orderId) => {
+    const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), {
-        status: 'Delivered',
+        status: newStatus,
         lastUpdated: new Date(),
         // Optionally, add to orderHistory if you track it
       });
       setOrders(prev =>
         prev.map(order =>
-          order.id === orderId ? { ...order, status: 'Delivered' } : order
+          order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
       if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status: 'Delivered' });
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
       }
     } catch (error) {
-      console.error('Error marking as delivered:', error);
+      console.error('Error updating order status:', error);
     }
   };
 
-    const handleApproveOrder = async (orderId) => {
+
+    const handleApprovePayment = async (orderId) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: 'Approved' });
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Approved' } : o));
+      await updateDoc(doc(db, 'orders', orderId), { paymentStatus: 'Approved' });
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      setShowTransactionModal(false);
     } catch (error) {
-      console.error('Error approving order:', error);
+      console.error('Error approving payment:', error);
     }
   };
 
-  const handleDisapproveOrder = async (orderId) => {
+  const handleDisapprovePayment = async (orderId) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: 'Disapproved' });
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Disapproved' } : o));
+      await updateDoc(doc(db, 'orders', orderId), { paymentStatus: 'Disapproved' });
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      setShowTransactionModal(false);
     } catch (error) {
-      console.error('Error disapproving order:', error);
+      console.error('Error disapproving payment:', error);
     }
   };
 
@@ -784,23 +829,31 @@ const AdminPanel = () => {
                       ))}
                     </ul>
                     <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                        <select
+                            value={orderStatus}
+                            onChange={(e) => setOrderStatus(e.target.value)}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                        >
+                            <option value="Order Confirmed">Order Confirmed</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Out for Delivery">Out for Delivery</option>
+                            <option value="Delivered">Delivered</option>
+                        </select>
+                      <button
+                        onClick={() => {
+                          handleUpdateOrderStatus(selectedOrder.id, orderStatus);
+                          setShowOrderModal(false);
+                        }}
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        Update Status
+                      </button>
                       <button
                         onClick={() => setShowOrderModal(false)}
                         className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         Close
                       </button>
-                      {selectedOrder.status !== 'Delivered' && (
-                        <button
-                          onClick={() => {
-                            handleMarkAsDelivered(selectedOrder.id);
-                            setShowOrderModal(false);
-                          }}
-                          className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
-                          Mark as Delivered
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1061,11 +1114,10 @@ const AdminPanel = () => {
             </div>
           </div>
         )}
-
         {/* Transactions Tab */}
         {activeTab === 'transactions' && (
           <div className="space-y-6">
-            <h2 className="text-xl md:text-2xl font-bold">Transactions</h2>
+            <h2 className="text-xl md:text-2xl font-bold">Pending Transactions</h2>
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -1074,12 +1126,12 @@ const AdminPanel = () => {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {orders.map((order) => (
+                    {orders.filter(order => order.paymentStatus === 'Pending Approval').map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           #{order.id.slice(-8)}
@@ -1091,31 +1143,21 @@ const AdminPanel = () => {
                           ₹{order.amount}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            order.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                            order.status === 'Disapproved' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {order.status}
+                           <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            {order.paymentStatus}
                           </span>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleApproveOrder(order.id)}
-                              className="text-green-600 hover:text-green-800 transition-colors"
-                              title="Approve Order"
-                            >
-                              <CheckCircle className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDisapproveOrder(order.id)}
-                              className="text-red-600 hover:text-red-800 transition-colors"
-                              title="Disapprove Order"
-                            >
-                              <XCircle className="w-5 h-5" />
-                            </button>
-                          </div>
+                           <button
+                            onClick={() => {
+                              setSelectedTransaction(order);
+                              setShowTransactionModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            title="View Transaction"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1125,7 +1167,42 @@ const AdminPanel = () => {
             </div>
           </div>
         )}
-
+         {/* Category Manager Tab */}
+         {activeTab === 'categories' && (
+          <div className="space-y-6">
+            <h2 className="text-xl md:text-2xl font-bold">Category Management</h2>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="New category name"
+                />
+                <button
+                  onClick={handleAddCategory}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium"
+                >
+                  Add Category
+                </button>
+              </div>
+              <ul className="space-y-2">
+                {categories.map((cat) => (
+                  <li key={cat.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span>{cat.name}</span>
+                    <button
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Product Modal */}
@@ -1173,13 +1250,9 @@ const AdminPanel = () => {
                       required
                     >
                       <option value="">Select Category</option>
-                      <option value="mens">Men's</option>
-                      <option value="womens">Women's</option>
-                      <option value="kids">Kids</option>
-                      <option value="t-shirts">T-Shirts</option>
-                      <option value="dresses">Dresses</option>
-                      <option value="ethnic">Ethnic Wear</option>
-                      <option value="accessories">Accessories</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -1411,23 +1484,31 @@ const AdminPanel = () => {
                 ))}
               </ul>
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                  <select
+                      value={orderStatus}
+                      onChange={(e) => setOrderStatus(e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                  >
+                      <option value="Order Confirmed">Order Confirmed</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Out for Delivery">Out for Delivery</option>
+                      <option value="Delivered">Delivered</option>
+                  </select>
+                <button
+                  onClick={() => {
+                    handleUpdateOrderStatus(selectedOrder.id, orderStatus);
+                    setShowOrderModal(false);
+                  }}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Update Status
+                </button>
                 <button
                   onClick={() => setShowOrderModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Close
                 </button>
-                {selectedOrder.status !== 'Delivered' && (
-                  <button
-                    onClick={() => {
-                      handleMarkAsDelivered(selectedOrder.id);
-                      setShowOrderModal(false);
-                    }}
-                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                  >
-                    Mark as Delivered
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -1593,6 +1674,37 @@ const AdminPanel = () => {
           </div>
         </div>
       )}
+      {/* Transaction Detail Modal */}
+      {showTransactionModal && selectedTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-2 sm:mx-4 relative">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowTransactionModal(false)}>&times;</button>
+            <h3 className="text-xl font-bold mb-4 px-4 pt-6 sm:pt-8">Transaction Details</h3>
+            <div className="px-4 pb-6 space-y-2 text-gray-700 text-sm sm:text-base">
+              <div>Transaction ID: <span className="font-medium">{selectedTransaction.transactionId}</span></div>
+              <div>Order ID: <span className="font-medium">#{selectedTransaction.id.slice(-8)}</span></div>
+              <div>Customer: <span className="font-medium">{selectedTransaction.customerName || selectedTransaction.email}</span></div>
+              <div>Amount: <span className="font-medium">₹{selectedTransaction.amount}</span></div>
+              <div>Payment Method: <span className="font-medium">{selectedTransaction.paymentMethod}</span></div>
+              <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                <button
+                  onClick={() => handleDisapprovePayment(selectedTransaction.id)}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Disapprove
+                </button>
+                <button
+                  onClick={() => handleApprovePayment(selectedTransaction.id)}
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Delete Product Confirmation Modal */}
       {showDeleteProductModal && productToDelete && (

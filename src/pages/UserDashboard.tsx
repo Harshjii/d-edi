@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { User, Package, Heart, MapPin, CreditCard, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Package, Heart, MapPin, CreditCard, Settings, Truck, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import {
@@ -13,8 +13,10 @@ import {
   getDocs,
   arrayUnion,
   arrayRemove,
-  deleteDoc
+  deleteDoc,
+  orderBy
 } from 'firebase/firestore';
+import { Link, useNavigate } from 'react-router-dom';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -38,9 +40,16 @@ const UserDashboard = () => {
     cvv: ''
   });
   const [upiId, setUpiId] = useState('');
+  const navigate = useNavigate();
   // Wishlist state
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(true);
+  // Notification state
+  const [saveNotification, setSaveNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+
   // Fetch wishlist
   React.useEffect(() => {
     if (!user?.uid) return;
@@ -117,16 +126,15 @@ const UserDashboard = () => {
     if (!user?.uid) return;
     setLoadingOrders(true);
     const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, where('userId', '==', user.uid));
+    const q = query(ordersRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
     getDocs(q).then((snapshot: any) => {
       const userOrders = snapshot.docs.map((doc: any) => {
         const data = doc.data();
         return {
           id: doc.id,
-          date: data.date?.toDate ? data.date.toDate().toLocaleDateString() : data.date || '',
-          status: data.status || '',
-          total: data.amount || 0,
-          items: data.items || []
+          ...data,
+          date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+          lastUpdated: data.lastUpdated?.toDate ? data.lastUpdated.toDate() : new Date(data.lastUpdated),
         };
       });
       setOrders(userOrders);
@@ -272,8 +280,8 @@ const UserDashboard = () => {
                           <div key={order.id} className="border border-gray-200 rounded-lg p-6">
                             <div className="flex justify-between items-start mb-4">
                               <div>
-                                <h3 className="font-semibold">Order #{order.id}</h3>
-                                <p className="text-gray-600">Placed on {order.date}</p>
+                              <h3 className="font-semibold">{order.items.map(item => item.name).join(', ')}</h3>
+                                <p className="text-gray-600">Placed on {order.date.toLocaleDateString()}</p>
                               </div>
                               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                 order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
@@ -293,7 +301,10 @@ const UserDashboard = () => {
                             </div>
                             <div className="flex justify-between items-center pt-4 border-t">
                               <span className="font-semibold">Total: ₹{order.total}</span>
-                              <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors">
+                              <button
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors"
+                                onClick={() => navigate(`/track/${order.id}`)}
+                              >
                                 Track Order
                               </button>
                             </div>

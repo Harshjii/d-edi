@@ -41,6 +41,9 @@ const UserDashboard = () => {
   // Wishlist state
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(true);
+  // Notification state
+  const [saveNotification, setSaveNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
   // Fetch wishlist
   React.useEffect(() => {
     if (!user?.uid) return;
@@ -138,27 +141,42 @@ const UserDashboard = () => {
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.uid) return;
-    await updateDoc(doc(db, 'users', user.uid), profileEdit);
-    setProfile(profileEdit);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), profileEdit);
+      setProfile(profileEdit);
+      setSaveNotification({ type: 'success', message: 'Profile updated successfully!' });
+    } catch (e) {
+      setSaveNotification({ type: 'error', message: 'Failed to update profile.' });
+    }
   };
 
   // Address add handler
   const handleAddAddress = async () => {
     if (!addressInput || !user?.uid) return;
-    await updateDoc(doc(db, 'users', user.uid), {
-      addresses: arrayUnion(addressInput)
-    });
-    setAddresses([...addresses, addressInput]);
-    setAddressInput('');
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        addresses: arrayUnion(addressInput)
+      });
+      setAddresses([...addresses, addressInput]);
+      setAddressInput('');
+      setSaveNotification({ type: 'success', message: 'Address added!' });
+    } catch (e) {
+      setSaveNotification({ type: 'error', message: 'Failed to add address.' });
+    }
   };
 
   // Address remove handler
   const handleRemoveAddress = async (addr: string) => {
     if (!user?.uid) return;
-    await updateDoc(doc(db, 'users', user.uid), {
-      addresses: arrayRemove(addr)
-    });
-    setAddresses(addresses.filter(a => a !== addr));
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        addresses: arrayRemove(addr)
+      });
+      setAddresses(addresses.filter(a => a !== addr));
+      setSaveNotification({ type: 'success', message: 'Address removed.' });
+    } catch (e) {
+      setSaveNotification({ type: 'error', message: 'Failed to remove address.' });
+    }
   };
 
   // Payment add handler
@@ -182,23 +200,41 @@ const UserDashboard = () => {
         upiId
       };
     }
-    await updateDoc(doc(db, 'users', user.uid), {
-      payments: arrayUnion(newPayment)
-    });
-    setPayments([...payments, newPayment]);
-    setShowPaymentModal(false);
-    setCardDetails({ cardNumber: '', name: '', expiry: '', cvv: '' });
-    setUpiId('');
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        payments: arrayUnion(newPayment)
+      });
+      setPayments([...payments, newPayment]);
+      setShowPaymentModal(false);
+      setCardDetails({ cardNumber: '', name: '', expiry: '', cvv: '' });
+      setUpiId('');
+      setSaveNotification({ type: 'success', message: 'Payment method added!' });
+    } catch (e) {
+      setSaveNotification({ type: 'error', message: 'Failed to add payment method.' });
+    }
   };
 
   // Payment remove handler
   const handleRemovePayment = async (pay: string) => {
     if (!user?.uid) return;
-    await updateDoc(doc(db, 'users', user.uid), {
-      payments: arrayRemove(pay)
-    });
-    setPayments(payments.filter(p => p !== pay));
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        payments: arrayRemove(pay)
+      });
+      setPayments(payments.filter(p => p !== pay));
+      setSaveNotification({ type: 'success', message: 'Payment method removed.' });
+    } catch (e) {
+      setSaveNotification({ type: 'error', message: 'Failed to remove payment method.' });
+    }
   };
+
+  // Auto-hide notification after 2 seconds
+  React.useEffect(() => {
+    if (saveNotification) {
+      const timer = setTimeout(() => setSaveNotification(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveNotification]);
 
   const tabs = [
     { id: 'orders', label: 'My Orders', icon: Package },
@@ -210,6 +246,13 @@ const UserDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Save notification pop-up */}
+      {saveNotification && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-semibold
+          ${saveNotification.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+          {saveNotification.message}
+        </div>
+      )}
       <div className="container mx-auto px-4 py-8">
         <div className="bg-gradient-to-r from-yellow-500 to-red-600 rounded-lg p-8 mb-8 text-white">
           <div className="flex items-center space-x-4">

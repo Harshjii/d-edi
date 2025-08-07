@@ -10,7 +10,30 @@ import { useAuth } from '../context/AuthContext';
 function ProfileMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false);
   const profileMenuRef = useRef(null);
-  
+
+  // Fetch full user details from Firestore for the dropdown
+  const [fullUser, setFullUser] = useState(user);
+
+  useEffect(() => {
+    let ignore = false;
+    async function fetchUserDetails() {
+      if (!user?.uid) return;
+      try {
+        const { db } = await import('../firebase');
+        const { doc, getDoc } = await import('firebase/firestore');
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && !ignore) {
+          setFullUser({ ...user, ...userDoc.data() });
+        }
+      } catch (e) {
+        // fallback to auth user
+        setFullUser(user);
+      }
+    }
+    fetchUserDetails();
+    return () => { ignore = true; };
+  }, [user]);
+
   useEffect(() => {
     if (!open) return;
     const handleClick = (e) => {
@@ -33,7 +56,7 @@ function ProfileMenu({ user, onLogout }) {
         <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
           <User className="w-4 h-4 text-white" />
         </div>
-        <span className="hidden md:block font-medium">{user.name || user.email?.split('@')[0] || 'User'}</span>
+        <span className="hidden md:block font-medium">{fullUser.name || fullUser.email?.split('@')[0] || 'User'}</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
@@ -45,8 +68,23 @@ function ProfileMenu({ user, onLogout }) {
                  Math.max(8, profileMenuRef.current.getBoundingClientRect().right - 224) + 'px' : 'auto'
              }}>
           <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">{user.name || 'User'}</p>
-            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+            <p className="text-sm font-medium text-gray-900">{fullUser.name || 'User'}</p>
+            <p className="text-sm text-gray-500 truncate">{fullUser.email}</p>
+            {fullUser.phone && (
+              <p className="text-xs text-gray-400 truncate">Phone: {fullUser.phone}</p>
+            )}
+            {fullUser.address && (
+              <p className="text-xs text-gray-400 truncate">Address: {fullUser.address}</p>
+            )}
+            {fullUser.role && (
+              <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold ${
+                fullUser.role === 'admin'
+                  ? 'bg-purple-100 text-purple-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}>
+                {fullUser.role}
+              </span>
+            )}
           </div>
           <Link
             to="/dashboard"
@@ -56,7 +94,7 @@ function ProfileMenu({ user, onLogout }) {
             <User className="w-4 h-4 mr-3" />
             Dashboard
           </Link>
-          {user.role === 'admin' && (
+          {fullUser.role === 'admin' && (
             <Link
               to="/admin"
               className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

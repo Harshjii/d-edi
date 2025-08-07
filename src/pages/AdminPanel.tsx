@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, X, Upload, Save, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, X, Upload, Save, Search, ChevronLeft, ChevronRight, Check, CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductContext';
 import { db } from '../firebase';
-import { collection, getDocs, query, orderBy, limit, startAfter, DocumentSnapshot, where, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, startAfter, DocumentSnapshot, where, Timestamp, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { uploadToCloudinary } from '../utils/cloudinary';
+import { deleteUser } from 'firebase/auth';
 
 const AdminPanel = () => {
   const { user } = useAuth();
@@ -19,6 +20,7 @@ const AdminPanel = () => {
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pendingReviews, setPendingReviews] = useState([]);
 
   // Users pagination
   const [usersLoading, setUsersLoading] = useState(false);
@@ -49,6 +51,18 @@ const AdminPanel = () => {
   const [imageFiles, setImageFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
 
+  // Order and User modals
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
+  // Toast notification state
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
   useEffect(() => {
     if (!user || user.role !== 'admin') {
       navigate('/');
@@ -56,7 +70,8 @@ const AdminPanel = () => {
     }
     fetchOrders();
     fetchUsers();
-  }, [user, navigate]);
+    if (activeTab === 'reviews') fetchPendingReviews();
+  }, [user, navigate, activeTab]);
 
   // Fetch users with pagination
   useEffect(() => {
@@ -79,46 +94,64 @@ const AdminPanel = () => {
     }
   };
 
+  // Replace the fetchUsers function with the version from AdminPanelReference.tsx
   const fetchUsers = async () => {
-    setUsersLoading(true);
     try {
       const usersRef = collection(db, 'users');
-      let q;
-      
-      if (usersSearch.trim()) {
-        // Search by email or name
-        q = query(
-          usersRef,
-          where('email', '>=', usersSearch.toLowerCase()),
-          where('email', '<=', usersSearch.toLowerCase() + '\uf8ff'),
-          orderBy('email'),
-          limit(usersPerPage)
-        );
-      } else {
-        q = query(
-          usersRef,
-          orderBy('createdAt', 'desc'),
-          limit(usersPerPage)
-        );
-      }
-
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(usersRef);
       const usersData = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || new Date()
+        ...doc.data()
       }));
-      
       setUsers(usersData);
-      
-      // Get total count for pagination
-      const totalSnapshot = await getDocs(collection(db, 'users'));
-      setTotalUsers(totalSnapshot.size);
+      setTotalUsers(usersData.length);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
+    }
+  };
+
+  // Fetch pending reviews
+  const fetchPendingReviews = async () => {
+    setLoading(true);
+    try {
+      const reviewsRef = collection(db, 'reviews');
+      const q = query(
+        reviewsRef,
+        where('status', '==', 'pending'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      const reviews = await Promise.all(
+        snapshot.docs.map(async (reviewDoc) => {
+          const data = reviewDoc.data();
+          let productName = '';
+          let productImage = '';
+          if (data.productId) {
+            const productSnap = await getDocs(
+              query(collection(db, 'products'), where('__name__', '==', data.productId))
+            );
+            if (!productSnap.empty) {
+              const prod = productSnap.docs[0].data();
+              productName = prod.name || '';
+              productImage = prod.images?.[0] || '';
+            }
+          }
+          return {
+            id: reviewDoc.id,
+            ...data,
+            productName,
+            productImage,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+          };
+        })
+      );
+      setPendingReviews(reviews);
+    } catch (error) {
+      console.error('Error fetching pending reviews:', error);
+      setPendingReviews([]);
     } finally {
-      setUsersLoading(false);
+      setLoading(false);
     }
   };
 
@@ -210,17 +243,7 @@ const AdminPanel = () => {
     setShowProductModal(true);
   };
 
-  const handleDeleteProduct = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteProduct(productId);
-        alert('Product deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting product:', error);
-        alert('Error deleting product. Please try again.');
-      }
-    }
-  };
+  
 
   const toggleArrayItem = (array, item, setter) => {
     const newArray = array.includes(item)
@@ -291,10 +314,88 @@ const AdminPanel = () => {
     { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
-    { id: 'users', label: 'Users', icon: Users }
+    { id: 'users', label: 'Users', icon: Users },
+    { id: 'reviews', label: 'Reviews', icon: MessageSquare }
   ];
 
   const totalUsersPages = Math.ceil(totalUsers / usersPerPage);
+
+  const handleViewOrder = (order) => {
+    setSelectedOrder(order);
+    setShowOrderModal(true);
+  };
+
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+
+  const handleApproveReview = async (reviewId) => {
+    try {
+      await updateDoc(doc(db, 'reviews', reviewId), { status: 'approved' });
+      setPendingReviews(prev => prev.filter(r => r.id !== reviewId));
+    } catch (error) {
+      console.error('Error approving review:', error);
+    }
+  };
+
+  const handleRejectReview = async (reviewId) => {
+    try {
+      await updateDoc(doc(db, 'reviews', reviewId), { status: 'rejected' });
+      setPendingReviews(prev => prev.filter(r => r.id !== reviewId));
+    } catch (error) {
+      console.error('Error rejecting review:', error);
+    }
+  };
+
+  // Add Mark as Delivered handler
+  const handleMarkAsDelivered = async (orderId) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), {
+        status: 'Delivered',
+        lastUpdated: new Date(),
+        // Optionally, add to orderHistory if you track it
+      });
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId ? { ...order, status: 'Delivered' } : order
+        )
+      );
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: 'Delivered' });
+      }
+    } catch (error) {
+      console.error('Error marking as delivered:', error);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      // Get user auth ID from Firestore document
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        // Delete Firestore document
+        await deleteDoc(doc(db, 'users', userId));
+        
+        setUsers(prev => prev.filter(user => user.id !== userId));
+        setShowDeleteUserModal(false);
+        setUserToDelete(null);
+        
+        // Show success message
+        setErrorMsg('User deleted successfully');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2000);
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      // Show error message
+      setErrorMsg('Failed to delete user');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+      setShowDeleteUserModal(false);
+      setUserToDelete(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -533,11 +634,14 @@ const AdminPanel = () => {
                         <span>Edit</span>
                       </button>
                       <button
-                        onClick={() => handleDeleteProduct(product.id)}
-                        className="flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-1"
+                        onClick={() => {
+                          setUserToDelete(user);
+                          setShowDeleteUserModal(true);
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete User"
                       >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Delete</span>
+                        <Trash2 className="w-5 h-5 inline" />
                       </button>
                     </div>
                   </div>
@@ -561,6 +665,7 @@ const AdminPanel = () => {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -587,12 +692,87 @@ const AdminPanel = () => {
                             {order.status}
                           </span>
                         </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleViewOrder(order)}
+                            className="text-blue-600 hover:text-blue-800 mr-2"
+                            title="View Order"
+                          >
+                            <Eye className="w-5 h-5 inline" />
+                          </button>
+                          <ChevronRight className="w-5 h-5 text-gray-400 inline" />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
+            {/* Order Modal (detailed, responsive) */}
+            {showOrderModal && selectedOrder && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-2 sm:mx-4 relative overflow-y-auto max-h-[90vh]">
+                  <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowOrderModal(false)}>&times;</button>
+                  <h3 className="text-xl font-bold mb-4 px-4 pt-6 sm:pt-8">Order #{selectedOrder.id.slice(-8)}</h3>
+                  <div className="px-4 pb-6 space-y-2 text-gray-700 text-sm sm:text-base">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>Customer: <span className="font-medium">{selectedOrder.customerName || selectedOrder.email}</span></div>
+                      <div>Status: <span className="font-medium">{selectedOrder.status}</span></div>
+                      <div>First Name: <span className="font-medium">{selectedOrder.firstName}</span></div>
+                      <div>Last Name: <span className="font-medium">{selectedOrder.lastName}</span></div>
+                      <div>Email: <span className="font-medium">{selectedOrder.email}</span></div>
+                      <div>Phone: <span className="font-medium">{selectedOrder.phone}</span></div>
+                      <div>Date: <span className="font-medium">{selectedOrder.date?.toLocaleDateString?.() || ''}</span></div>
+                      <div>Payment Method: <span className="font-medium">{selectedOrder.paymentMethod || ''}</span></div>
+                      <div>Payment Status: <span className="font-medium">{selectedOrder.paymentStatus || ''}</span></div>
+                      <div>Subtotal: <span className="font-medium">₹{selectedOrder.subtotal}</span></div>
+                      <div>GST: <span className="font-medium">₹{selectedOrder.gst}</span></div>
+                      <div>Shipping Charges: <span className="font-medium">₹{selectedOrder.shippingCharges}</span></div>
+                      <div>Total Amount: <span className="font-medium">₹{selectedOrder.amount}</span></div>
+                      <div>Total Items: <span className="font-medium">{selectedOrder.totalItems}</span></div>
+                    </div>
+                    <div>Order Notes: <span className="font-medium">{selectedOrder.orderNotes}</span></div>
+                    <div className="font-semibold mt-2">Shipping Address</div>
+                    <div className="text-gray-600">{selectedOrder.shippingAddress?.fullAddress || ''}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div>City: <span className="font-medium">{selectedOrder.shippingAddress?.city || ''}</span></div>
+                      <div>State: <span className="font-medium">{selectedOrder.shippingAddress?.state || ''}</span></div>
+                      <div>PIN Code: <span className="font-medium">{selectedOrder.shippingAddress?.pincode || ''}</span></div>
+                    </div>
+                    <div>Formatted Address: <span className="font-medium">{selectedOrder.shippingAddress?.formattedAddress || ''}</span></div>
+                    <div className="font-semibold mt-2">Items:</div>
+                    <ul className="pl-4 list-disc text-gray-700">
+                      {selectedOrder.items?.map((item, idx) => (
+                        <li key={idx} className="mb-1">
+                          <span className="font-medium">{item.name}</span> x {item.quantity} (₹{item.price}) 
+                          <span className="ml-2 text-xs text-gray-500">Size: {item.size}, Color: {item.color}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                      <button
+                        onClick={() => setShowOrderModal(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Close
+                      </button>
+                      {selectedOrder.status !== 'Delivered' && (
+                        <button
+                          onClick={() => {
+                            handleMarkAsDelivered(selectedOrder.id);
+                            setShowOrderModal(false);
+                          }}
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          Mark as Delivered
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
@@ -635,6 +815,7 @@ const AdminPanel = () => {
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                          <th className="px-4 py-3"></th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -654,10 +835,46 @@ const AdminPanel = () => {
                               </span>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {user.createdAt ? user.createdAt.toLocaleDateString() : 'N/A'}
+                              {
+                                user.createdAt
+                                  ? (
+                                      // Handle Firestore Timestamp, Date, or string
+                                      typeof user.createdAt.toDate === 'function'
+                                        ? user.createdAt.toDate().toLocaleDateString()
+                                        : user.createdAt instanceof Date
+                                          ? user.createdAt.toLocaleDateString()
+                                          : typeof user.createdAt === 'string'
+                                            ? new Date(user.createdAt).toLocaleDateString()
+                                            : 'N/A'
+                                    )
+                                  : 'N/A'
+                              }
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                               {user.lastLogin ? user.lastLogin.toDate().toLocaleDateString() : 'Never'}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-right">
+                              <div className="flex space-x-4">
+                                <button
+                                  onClick={() => handleViewUser(user)}
+                                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                {user.role !== 'admin' && (
+                                  <button
+                                    onClick={() => {
+                                      setUserToDelete(user);
+                                      setShowDeleteUserModal(true);
+                                    }}
+                                    className="text-red-600 hover:text-red-800 transition-colors"
+                                    title="Delete User"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -736,6 +953,81 @@ const AdminPanel = () => {
             </div>
           </div>
         )}
+
+        {/* Reviews Tab */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-6">
+            <h2 className="text-xl md:text-2xl font-bold">Pending Reviews</h2>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comment</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {pendingReviews.map((review) => (
+                      <tr key={review.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center space-x-3">
+                            {review.productImage && (
+                              <img src={review.productImage} alt={review.productName} className="w-10 h-10 object-cover rounded" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{review.productName}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {review.userName || review.userId}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center">
+                            <span className="text-yellow-500">
+                              {Array.from({ length: typeof review.rating === 'number' ? review.rating : parseInt(review.rating) || 0 }, (_, i) => (
+                                <svg key={i} className="w-4 h-4 inline-block" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M10 15l-5.878 3.09 1.121-6.535L1 6.545l6.545-.954L10 0l2.454 5.591L19 6.545l-4.243 4.905 1.121 6.535z" />
+                                </svg>
+                              ))}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <p className="line-clamp-2">{review.comment}</p>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleApproveReview(review.id)}
+                              className="text-green-600 hover:text-green-800 transition-colors"
+                              title="Approve Review"
+                            >
+                              <CheckCircle className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleRejectReview(review.id)}
+                              className="text-red-600 hover:text-red-800 transition-colors"
+                              title="Reject Review"
+                            >
+                              <XCircle className="w-5 h-5" />
+                            </button>
+                            {/* Optionally add media view button here */}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Product Modal */}
@@ -976,6 +1268,238 @@ const AdminPanel = () => {
               </form>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Order Modal (detailed, responsive) */}
+      {showOrderModal && selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-2 sm:mx-4 relative overflow-y-auto max-h-[90vh]">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowOrderModal(false)}>&times;</button>
+            <h3 className="text-xl font-bold mb-4 px-4 pt-6 sm:pt-8">Order #{selectedOrder.id.slice(-8)}</h3>
+            <div className="px-4 pb-6 space-y-2 text-gray-700 text-sm sm:text-base">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>Customer: <span className="font-medium">{selectedOrder.customerName || selectedOrder.email}</span></div>
+                <div>Status: <span className="font-medium">{selectedOrder.status}</span></div>
+                <div>First Name: <span className="font-medium">{selectedOrder.firstName}</span></div>
+                <div>Last Name: <span className="font-medium">{selectedOrder.lastName}</span></div>
+                <div>Email: <span className="font-medium">{selectedOrder.email}</span></div>
+                <div>Phone: <span className="font-medium">{selectedOrder.phone}</span></div>
+                <div>Date: <span className="font-medium">{selectedOrder.date?.toLocaleDateString?.() || ''}</span></div>
+                <div>Payment Method: <span className="font-medium">{selectedOrder.paymentMethod || ''}</span></div>
+                <div>Payment Status: <span className="font-medium">{selectedOrder.paymentStatus || ''}</span></div>
+                <div>Subtotal: <span className="font-medium">₹{selectedOrder.subtotal}</span></div>
+                <div>GST: <span className="font-medium">₹{selectedOrder.gst}</span></div>
+                <div>Shipping Charges: <span className="font-medium">₹{selectedOrder.shippingCharges}</span></div>
+                <div>Total Amount: <span className="font-medium">₹{selectedOrder.amount}</span></div>
+                <div>Total Items: <span className="font-medium">{selectedOrder.totalItems}</span></div>
+              </div>
+              <div>Order Notes: <span className="font-medium">{selectedOrder.orderNotes}</span></div>
+              <div className="font-semibold mt-2">Shipping Address</div>
+              <div className="text-gray-600">{selectedOrder.shippingAddress?.fullAddress || ''}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>City: <span className="font-medium">{selectedOrder.shippingAddress?.city || ''}</span></div>
+                <div>State: <span className="font-medium">{selectedOrder.shippingAddress?.state || ''}</span></div>
+                <div>PIN Code: <span className="font-medium">{selectedOrder.shippingAddress?.pincode || ''}</span></div>
+              </div>
+              <div>Formatted Address: <span className="font-medium">{selectedOrder.shippingAddress?.formattedAddress || ''}</span></div>
+              <div className="font-semibold mt-2">Items:</div>
+              <ul className="pl-4 list-disc text-gray-700">
+                {selectedOrder.items?.map((item, idx) => (
+                  <li key={idx} className="mb-1">
+                    <span className="font-medium">{item.name}</span> x {item.quantity} (₹{item.price}) 
+                    <span className="ml-2 text-xs text-gray-500">Size: {item.size}, Color: {item.color}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                <button
+                  onClick={() => setShowOrderModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                {selectedOrder.status !== 'Delivered' && (
+                  <button
+                    onClick={() => {
+                      handleMarkAsDelivered(selectedOrder.id);
+                      setShowOrderModal(false);
+                    }}
+                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Mark as Delivered
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Modal (detailed, responsive) */}
+      {showUserModal && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-2 sm:mx-4 relative overflow-y-auto max-h-[90vh]">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowUserModal(false)}>&times;</button>
+            <h3 className="text-xl font-bold mb-4 px-4 pt-6 sm:pt-8">User: {selectedUser.name || selectedUser.email}</h3>
+            <div className="px-4 pb-6 space-y-6 text-gray-700 text-sm sm:text-base">
+              {/* Basic Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-4">Basic Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Full Name</p>
+                    <p className="font-medium">{selectedUser.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email Address</p>
+                    <p className="font-medium">{selectedUser.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Phone Number</p>
+                    <p className="font-medium">{selectedUser.phone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Role</p>
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      selectedUser.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {selectedUser.role || 'user'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Member Since</p>
+                    <p className="font-medium">
+                      {selectedUser.createdAt
+                        ? (selectedUser.createdAt.seconds
+                            ? new Date(selectedUser.createdAt.seconds * 1000).toLocaleDateString()
+                            : (selectedUser.createdAt instanceof Date
+                                ? selectedUser.createdAt.toLocaleDateString()
+                                : (typeof selectedUser.createdAt === 'string'
+                                    ? new Date(selectedUser.createdAt).toLocaleDateString()
+                                    : 'N/A')))
+                        : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">User ID</p>
+                    <p className="font-medium text-xs break-all">{selectedUser.id}</p>
+                  </div>
+                </div>
+              </div>
+              {/* Address Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-4">Addresses</h4>
+                <div className="space-y-2">
+                  {Array.isArray(selectedUser.addresses) && selectedUser.addresses.length > 0 ? (
+                    selectedUser.addresses.map((addr: string, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center bg-white rounded px-3 py-2 border">
+                        <span>{addr}</span>
+                        {selectedUser.role !== 'admin' && (
+                          <button
+                            onClick={async () => {
+                              // Remove address from Firestore and update modal state
+                              try {
+                                const { db } = await import('../firebase');
+                                const { doc, updateDoc, arrayRemove } = await import('firebase/firestore');
+                                await updateDoc(doc(db, 'users', selectedUser.id), {
+                                  addresses: arrayRemove(addr)
+                                });
+                                setSelectedUser((prev: any) => ({
+                                  ...prev,
+                                  addresses: prev.addresses.filter((a: string) => a !== addr)
+                                }));
+                              } catch (e) {
+                                // Optionally show error
+                              }
+                            }}
+                            className="text-red-500 hover:underline text-xs ml-2"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400">No addresses found.</div>
+                  )}
+                </div>
+              </div>
+              {/* User Statistics */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-4">User Statistics</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-600">{orders.filter(order => order.userId === selectedUser.id).length}</p>
+                    <p className="text-sm text-gray-600">Total Orders</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">
+                      ₹{orders.filter(order => order.userId === selectedUser.id).reduce((sum, order) => sum + (order.amount || 0), 0)}
+                    </p>
+                    <p className="text-sm text-gray-600">Total Spent</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-purple-600">
+                      {orders.filter(order => order.userId === selectedUser.id && order.status === 'Delivered').length}
+                    </p>
+                    <p className="text-sm text-gray-600">Completed Orders</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="mt-4 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Modal (minimal, for demonstration) */}
+      {showDeleteUserModal && userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full relative">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => { setShowDeleteUserModal(false); setUserToDelete(null); }}>&times;</button>
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
+                Delete User Account
+              </h3>
+              <p className="text-sm text-gray-600 text-center mb-6">
+                Are you sure you want to delete the account for <strong>{userToDelete.name || userToDelete.email}</strong>?<br />
+                This action cannot be undone and will permanently remove all user data.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => {
+                    setShowDeleteUserModal(false);
+                    setUserToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteUser(userToDelete.id)}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Delete User
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
+          {errorMsg}
         </div>
       )}
     </div>

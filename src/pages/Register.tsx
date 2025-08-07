@@ -70,13 +70,15 @@ const Register = () => {
         formData.password
       );
 
-      // Create user document in Firestore
+      // Use Firestore Timestamp for createdAt and lastLogin
+      const { serverTimestamp } = await import('firebase/firestore');
+
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         name: formData.name,
         email: formData.email,
         role: 'user',
-        createdAt: new Date(),
-        lastLogin: new Date()
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp()
       });
 
       setLoading(false);

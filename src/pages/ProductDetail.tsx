@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Heart, ShoppingCart, Plus, Minus, Truck, RotateCcw, Shield } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Plus, Minus, Truck, RotateCcw, Shield, Trash2 } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -71,14 +71,35 @@ const ProductDetail = () => {
       navigate('/login');
       return;
     }
-    
+
     setSubmittingReview(true);
     try {
-      // Add review to Firestore
+      // Use user's name from Firestore if available, fallback to displayName, else email
+      let userName = '';
+      if (user.displayName) {
+        userName = user.displayName;
+      } else if (user.email) {
+        userName = user.email;
+      }
+
+      // Try to get user's name from Firestore
+      try {
+        const userDoc = await import('../firebase').then(m => m.db)
+          .then(db => import('firebase/firestore').then(fb => fb.getDoc(fb.doc(db, 'users', user.uid))));
+        if (userDoc && userDoc.exists && userDoc.exists()) {
+          const data = userDoc.data();
+          if (data && data.name) {
+            userName = data.name;
+          }
+        }
+      } catch (e) {
+        // Ignore Firestore error, fallback to displayName/email
+      }
+
       await addDoc(collection(db, 'reviews'), {
         productId: id,
         userId: user.uid,
-        userName: user.displayName || 'Anonymous',
+        userName: userName,
         rating: reviewForm.rating,
         comment: reviewForm.comment,
         createdAt: new Date(),

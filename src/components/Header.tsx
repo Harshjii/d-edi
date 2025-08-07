@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import logo from '../assets/lbb.jpg';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User, Search, Heart, ChevronDown } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Search, Heart, ChevronDown, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
@@ -48,19 +48,19 @@ function ProfileMenu({ user, onLogout }) {
   return (
     <div className="relative" ref={profileMenuRef}>
       <button
-        className="flex items-center space-x-2 text-gray-700 hover:text-yellow-600 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+        className="flex items-center space-x-2 text-text-primary hover:text-accent p-2 rounded-lg hover:bg-background transition-colors"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="true"
         aria-expanded={open}
       >
-        <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
+        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
           <User className="w-4 h-4 text-white" />
         </div>
         <span className="hidden md:block font-medium">{fullUser.name || fullUser.email?.split('@')[0] || 'User'}</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="fixed bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-[70] w-56"
+        <div className="fixed bg-card rounded-xl shadow-xl border border-gray-200 py-2 z-[70] w-56"
              style={{
                top: profileMenuRef.current ? 
                  profileMenuRef.current.getBoundingClientRect().bottom + 8 + 'px' : '100%',
@@ -68,8 +68,8 @@ function ProfileMenu({ user, onLogout }) {
                  Math.max(8, profileMenuRef.current.getBoundingClientRect().right - 224) + 'px' : 'auto'
              }}>
           <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">{fullUser.name || 'User'}</p>
-            <p className="text-sm text-gray-500 truncate">{fullUser.email}</p>
+            <p className="text-sm font-medium text-text-primary">{fullUser.name || 'User'}</p>
+            <p className="text-sm text-text-secondary truncate">{fullUser.email}</p>
             {fullUser.phone && (
               <p className="text-xs text-gray-400 truncate">Phone: {fullUser.phone}</p>
             )}
@@ -88,7 +88,7 @@ function ProfileMenu({ user, onLogout }) {
           </div>
           <Link
             to="/dashboard"
-            className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center px-4 py-3 text-sm text-text-primary hover:bg-background transition-colors"
             onClick={() => setOpen(false)}
           >
             <User className="w-4 h-4 mr-3" />
@@ -97,7 +97,7 @@ function ProfileMenu({ user, onLogout }) {
           {fullUser.role === 'admin' && (
             <Link
               to="/admin"
-              className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center px-4 py-3 text-sm text-text-primary hover:bg-background transition-colors"
               onClick={() => setOpen(false)}
             >
               <User className="w-4 h-4 mr-3" />
@@ -231,9 +231,9 @@ const Header = () => {
   }, [showSearchInput, showDesktopCategories, showMobileCategories]);
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-50 bg-white shadow-lg border-b border-gray-200">
+    <header className="sticky top-0 left-0 right-0 z-50 bg-card shadow-lg border-b border-gray-200">
       {/* Top banner */}
-      <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 text-center text-xs sm:text-sm font-medium">
+      <div className="bg-primary-dark text-white py-2 text-center text-xs sm:text-sm font-medium">
         Free shipping on orders above ₹999 | Follow us @deepjotclothingstore
       </div>
       {/* Main header */}
@@ -244,32 +244,32 @@ const Header = () => {
           <img
             src={logo}
             alt="D-EDI Logo"
-            className="w-10 h-10 object-contain rounded-lg border-2 border-yellow-400 shadow-lg"
+            className="w-10 h-10 object-contain rounded-lg border-2 border-accent shadow-lg"
           />
-          <span className="text-xl font-bold text-navy-900 tracking-wide">D-EDI</span>
+          <span className="text-xl font-bold text-primary-dark tracking-wide">D-EDI</span>
         </Link>
         <nav className="flex items-center gap-4 min-w-fit">
-          <Link to="/" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">Home</Link>
-          <Link to="/products" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">Products</Link>
-          <Link to="/featured" className="text-gray-700 hover:text-yellow-600 font-medium transition-colors">Featured Products</Link>
+          <Link to="/" className="text-text-primary hover:text-accent font-medium transition-colors">Home</Link>
+          <Link to="/products" className="text-text-primary hover:text-accent font-medium transition-colors">Products</Link>
+          <Link to="/featured" className="text-text-primary hover:text-accent font-medium transition-colors">Featured Products</Link>
         </nav>
         <div className="flex-1" />
         {/* Cart Icon */}
         <Link 
           to="/cart" 
-          className="relative p-2 text-gray-700 hover:text-yellow-600 rounded-lg hover:bg-gray-50 transition-colors"
+          className="relative p-2 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors"
           aria-label={`Shopping Cart with ${cartItemsCount} items`}
         >
           <ShoppingCart className="w-6 h-6" />
           {cartItemsCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold">
+            <span className="absolute -top-1 -right-1 bg-accent text-primary-dark w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold">
               {cartItemsCount}
             </span>
           )}
         </Link>
         {/* Search, Profile (desktop) */}
         <form
-          className={`flex items-center transition-all duration-300 bg-white rounded-lg shadow-md border border-gray-200 relative ${showSearchInput ? 'w-full max-w-xs sm:max-w-sm md:max-w-md px-2 ml-2' : 'w-0 px-0 ml-0 overflow-hidden'} h-10 min-w-0`}
+          className={`flex items-center transition-all duration-300 bg-background rounded-lg shadow-sm border border-gray-200 relative ${showSearchInput ? 'w-full max-w-xs sm:max-w-sm md:max-w-md px-2 ml-2' : 'w-0 px-0 ml-0 overflow-hidden'} h-10 min-w-0`}
           style={{marginLeft: showSearchInput ? 8 : 0, marginRight: showSearchInput ? 8 : 0}}
           onSubmit={handleSearch}
           ref={desktopSearchInputRef}
@@ -294,7 +294,7 @@ const Header = () => {
           <div className="relative" ref={desktopCategoryDropdownRef}>
             <button 
               type="button" 
-              className="flex items-center px-2 py-2 text-gray-700 font-medium hover:bg-gray-50 rounded" 
+              className="flex items-center px-2 py-2 text-text-secondary font-medium hover:bg-gray-200 rounded" 
               onClick={e => {
                 e.preventDefault(); 
                 e.stopPropagation();
@@ -305,7 +305,7 @@ const Header = () => {
               <ChevronDown className={`w-4 h-4 transition-transform ${showDesktopCategories ? 'rotate-180' : ''}`} />
             </button>
             {showDesktopCategories && (
-              <div className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[70] max-h-64 overflow-y-auto w-48"
+              <div className="fixed bg-card rounded-lg shadow-xl border border-gray-200 py-2 z-[70] max-h-64 overflow-y-auto w-48"
                    style={{
                      top: desktopCategoryDropdownRef.current ? 
                        desktopCategoryDropdownRef.current.getBoundingClientRect().bottom + 8 + 'px' : '100%',
@@ -314,7 +314,7 @@ const Header = () => {
                    }}>
                 <button 
                   type="button"
-                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 text-sm" 
+                  className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm" 
                   onClick={() => { 
                     setSelectedCategory(''); 
                     setShowDesktopCategories(false); 
@@ -326,7 +326,7 @@ const Header = () => {
                   <button
                     key={cat}
                     type="button"
-                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 text-sm"
+                    className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm"
                     onClick={() => { 
                       setSelectedCategory(cat); 
                       setShowDesktopCategories(false); 
@@ -340,16 +340,10 @@ const Header = () => {
           </div>
         </form>
         <button
-          className={`p-2 ml-1 text-gray-700 hover:text-yellow-600 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0 ${showSearchInput ? 'bg-yellow-100' : ''}`}
+          className={`p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors flex-shrink-0 ${showSearchInput ? 'bg-gray-200' : ''}`}
           onClick={() => {
             if (!showSearchInput) {
               setShowSearchInput(true);
-              setTimeout(() => {
-                if (desktopSearchInputRef.current) {
-                  const input = desktopSearchInputRef.current.querySelector('input');
-                  if (input) input.focus();
-                }
-              }, 50);
             }
           }}
           aria-label="Open search"
@@ -362,7 +356,7 @@ const Header = () => {
         {user ? (
           <ProfileMenu user={user} onLogout={handleLogout} />
         ) : (
-          <Link to="/login" className="p-2 ml-1 text-gray-700 hover:text-yellow-600 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0">
+          <Link to="/login" className="p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors flex-shrink-0">
             <User className="w-6 h-6" />
           </Link>
         )}
@@ -370,12 +364,12 @@ const Header = () => {
       {/* Mobile: single-line header */}
       <div className="flex lg:hidden items-center w-full h-14 gap-3 relative px-2">
         {/* Hamburger */}
-        <button className="p-2 mr-1 text-gray-700 hover:text-yellow-600 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0" onClick={() => setShowMobileMenu(v => !v)}>
+        <button className="p-2 mr-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors flex-shrink-0" onClick={() => setShowMobileMenu(v => !v)}>
           <Menu className="w-6 h-6" />
         </button>
         {/* Expanding Search Input */}
         <form
-          className={`flex items-center transition-all duration-300 bg-white rounded-lg shadow-md border border-gray-200 relative ${showSearchInput ? 'w-full max-w-xs sm:max-w-sm md:max-w-md px-2 ml-2' : 'w-0 px-0 ml-0 overflow-hidden'} h-10`}
+          className={`flex items-center transition-all duration-300 bg-background rounded-lg shadow-sm border border-gray-200 relative ${showSearchInput ? 'w-full max-w-xs sm:max-w-sm md:max-w-md px-2 ml-2' : 'w-0 px-0 ml-0 overflow-hidden'} h-10`}
           style={{marginLeft: showSearchInput ? 8 : 0, marginRight: showSearchInput ? 8 : 0}}
           onSubmit={handleSearch}
           ref={mobileSearchInputRef}
@@ -397,7 +391,7 @@ const Header = () => {
           <div className="relative" ref={mobileCategoryDropdownRef}>
             <button 
               type="button" 
-              className="flex items-center px-2 py-2 text-gray-700 font-medium hover:bg-gray-50 rounded" 
+              className="flex items-center px-2 py-2 text-text-secondary font-medium hover:bg-gray-200 rounded" 
               onClick={e => {
                 e.preventDefault(); 
                 e.stopPropagation();
@@ -408,7 +402,7 @@ const Header = () => {
               <ChevronDown className={`w-4 h-4 transition-transform ${showMobileCategories ? 'rotate-180' : ''}`} />
             </button>
             {showMobileCategories && (
-              <div className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[70] max-h-64 overflow-y-auto w-48"
+              <div className="fixed bg-card rounded-lg shadow-xl border border-gray-200 py-2 z-[70] max-h-64 overflow-y-auto w-48"
                    style={{
                      top: mobileCategoryDropdownRef.current ? 
                        mobileCategoryDropdownRef.current.getBoundingClientRect().bottom + 8 + 'px' : '100%',
@@ -417,7 +411,7 @@ const Header = () => {
                    }}>
                 <button 
                   type="button"
-                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 text-sm" 
+                  className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm" 
                   onClick={() => { 
                     setSelectedCategory(''); 
                     setShowMobileCategories(false); 
@@ -429,7 +423,7 @@ const Header = () => {
                   <button
                     key={cat}
                     type="button"
-                    className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 text-sm"
+                    className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm"
                     onClick={() => { 
                       setSelectedCategory(cat); 
                       setShowMobileCategories(false); 
@@ -446,22 +440,9 @@ const Header = () => {
         <div className="flex-1" />
         {/* Search Icon */}
         <button
-          className={`p-2 ml-1 text-gray-700 hover:text-yellow-600 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0 ${showSearchInput ? 'bg-yellow-100' : ''}`}
-          onClick={() => {
-            if (!showSearchInput) {
-              setShowSearchInput(true);
-              setTimeout(() => {
-                if (mobileSearchInputRef.current) {
-                  const input = mobileSearchInputRef.current.querySelector('input');
-                  if (input) input.focus();
-                }
-              }, 50);
-            }
-          }}
+          className={`p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors flex-shrink-0`}
+          onClick={() => setShowSearchInput(true)}
           aria-label="Open search"
-          tabIndex={showSearchInput ? -1 : 0}
-          style={{zIndex: 20}}
-          disabled={showSearchInput}
         >
           <Search className="w-6 h-6" />
         </button>
@@ -469,7 +450,7 @@ const Header = () => {
         {user ? (
           <ProfileMenu user={user} onLogout={handleLogout} />
         ) : (
-          <Link to="/login" className="p-2 ml-1 text-gray-700 hover:text-yellow-600 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0">
+          <Link to="/login" className="p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors flex-shrink-0">
             <User className="w-6 h-6" />
           </Link>
         )}
@@ -477,41 +458,32 @@ const Header = () => {
         {/* Mobile Categories Dropdown and Navigation */}
         {showMobileMenu && (
           <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex flex-col">
-            <div className="bg-white shadow-lg w-64 max-w-full h-full p-6 overflow-y-auto relative">
+            <div className="bg-card shadow-lg w-64 max-w-full h-full p-6 overflow-y-auto relative">
               <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowMobileMenu(false)}>&times;</button>
               
               {/* Navigation Links */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-yellow-700 flex items-center mb-4">Menu</h3>
-                <Link to="/" 
-                  className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" 
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Home
-                </Link>
-                <Link to="/wishlist" 
-                  className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" 
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Wishlist
-                </Link>
-                <Link to="/cart" 
-                  className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" 
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Cart
-                </Link>
+              <div className="mb-6 mt-8">
+                <h3 className="text-lg font-bold text-accent flex items-center mb-4">
+                  <Menu className="w-5 h-5 mr-2" />
+                  Menu
+                </h3>
+                <Link to="/" className="block px-4 py-3 text-text-primary hover:text-accent hover:bg-background font-medium rounded-lg transition-colors" onClick={() => setShowMobileMenu(false)}>Home</Link>
+                <Link to="/wishlist" className="block px-4 py-3 text-text-primary hover:text-accent hover:bg-background font-medium rounded-lg transition-colors" onClick={() => setShowMobileMenu(false)}>Wishlist</Link>
+                <Link to="/cart" className="block px-4 py-3 text-text-primary hover:text-accent hover:bg-background font-medium rounded-lg transition-colors" onClick={() => setShowMobileMenu(false)}>Cart</Link>
               </div>
               
               {/* Categories Section */}
               <div className="border-t pt-4">
-                <h3 className="text-lg font-bold text-yellow-700 flex items-center mb-4"><Menu className="w-5 h-5 mr-2" />Categories</h3>
+                <h3 className="text-lg font-bold text-accent flex items-center mb-4">
+                  <Tag className="w-5 h-5 mr-2" />
+                  Categories
+                </h3>
                 <div className="space-y-1">
                   {categories.map((cat) => (
                     <Link
                       key={cat}
                       to={`/products/${cat}`}
-                      className="block px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 text-base rounded-lg"
+                      className="block px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-base rounded-lg"
                       onClick={() => setShowMobileMenu(false)}
                     >
                       {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}

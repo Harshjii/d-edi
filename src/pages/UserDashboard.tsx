@@ -175,7 +175,6 @@ const UserDashboard = () => {
     if (!user?.uid) return;
     let newPayment;
     if (paymentType === 'card') {
-      // Basic validation
       if (!cardDetails.cardNumber.match(/^\d{16}$/) || !cardDetails.name || !cardDetails.expiry.match(/^\d{2}\/\d{2}$/)) return;
       newPayment = {
         type: 'card',
@@ -217,26 +216,25 @@ const UserDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-gradient-to-r from-yellow-500 to-red-600 rounded-lg p-8 mb-8 text-white">
+        <div className="bg-gradient-to-r from-primary to-primary-dark rounded-lg p-8 mb-8 text-white animate-fadeInUp">
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-gray-700" />
+            <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-primary-dark" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Welcome back, {user?.email || 'User'}!</h1>
-              <p className="text-yellow-100">Manage your account and track your orders</p>
+              <p className="text-gray-300">Manage your account and track your orders</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow">
+          <div className="lg:col-span-1 animate-fadeInUp">
+            <div className="bg-card rounded-lg shadow">
               <div className="p-6">
-                <h2 className="text-lg font-semibold mb-4">Account</h2>
+                <h2 className="text-lg font-semibold mb-4 text-text-primary">Account</h2>
                 <nav className="space-y-2">
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
@@ -246,8 +244,8 @@ const UserDashboard = () => {
                         onClick={() => setActiveTab(tab.id)}
                         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                           activeTab === tab.id
-                            ? 'bg-yellow-50 text-yellow-600 border-l-4 border-yellow-500'
-                            : 'text-gray-600 hover:bg-gray-50'
+                            ? 'bg-primary text-white'
+                            : 'text-text-secondary hover:bg-background'
                         }`}
                       >
                         <Icon className="w-5 h-5" />
@@ -260,19 +258,18 @@ const UserDashboard = () => {
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow">
+          <div className="lg:col-span-3 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
+            <div className="bg-card rounded-lg shadow">
               <div className="p-6">
                 {activeTab === 'orders' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6">My Orders</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-text-primary">My Orders</h2>
                     {loadingOrders ? (
-                      <p className="text-gray-500">Loading orders...</p>
+                      <p className="text-text-secondary">Loading orders...</p>
                     ) : orders.length === 0 ? (
                       <div className="text-center py-12">
                         <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No orders found</p>
+                        <p className="text-text-secondary">No orders found</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -280,8 +277,8 @@ const UserDashboard = () => {
                           <div key={order.id} className="border border-gray-200 rounded-lg p-6">
                             <div className="flex justify-between items-start mb-4">
                               <div>
-                              <h3 className="font-semibold">{order.items.map(item => item.name).join(', ')}</h3>
-                                <p className="text-gray-600">Placed on {order.date.toLocaleDateString()}</p>
+                                <h3 className="font-semibold text-text-primary">{order.items.map(item => item.name).join(', ')}</h3>
+                                <p className="text-text-secondary">Placed on {order.date.toLocaleDateString()}</p>
                               </div>
                               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                                 order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
@@ -293,16 +290,25 @@ const UserDashboard = () => {
                             </div>
                             <div className="space-y-2 mb-4">
                               {order.items.map((item: any, index: number) => (
-                                <div key={index} className="flex justify-between">
+                                <div key={index} className="flex justify-between text-text-secondary">
                                   <span>{item.name} x {item.quantity}</span>
                                   <span>₹{item.price * item.quantity}</span>
                                 </div>
                               ))}
                             </div>
                             <div className="flex justify-between items-center pt-4 border-t">
-                              <span className="font-semibold">Total: ₹{order.total}</span>
+                              <span className="font-semibold text-text-primary">
+                                Total: ₹
+                                {/* Fix: Use order.amount if present, else fallback to sum of items */}
+                                {typeof order.amount === 'number'
+                                  ? order.amount
+                                  : order.items.reduce(
+                                      (sum: number, item: any) => sum + (item.price * item.quantity), 0
+                                    )
+                                }
+                              </span>
                               <button
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors"
+                                className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg transition-colors font-semibold"
                                 onClick={() => navigate(`/track/${order.id}`)}
                               >
                                 Track Order
@@ -317,31 +323,27 @@ const UserDashboard = () => {
 
                 {activeTab === 'wishlist' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6">My Wishlist</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-text-primary">My Wishlist</h2>
                     {wishlistLoading ? (
-                      <p className="text-gray-500">Loading wishlist...</p>
+                      <p className="text-text-secondary">Loading wishlist...</p>
                     ) : wishlist.length === 0 ? (
                       <div className="text-center py-12">
                         <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">Your wishlist is empty</p>
+                        <p className="text-text-secondary">Your wishlist is empty</p>
                         <p className="text-gray-400">Start adding items you love!</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {wishlist.map((item) => (
-                          <div key={item.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-full h-48 object-cover"
-                            />
+                          <div key={item.id} className="bg-card rounded-lg shadow-sm overflow-hidden">
+                            <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
                             <div className="p-4">
-                              <h3 className="font-semibold text-gray-900 mb-2">{item.name}</h3>
-                              <p className="text-gray-900 font-bold mb-4">₹{item.price}</p>
+                              <h3 className="font-semibold text-text-primary mb-2">{item.name}</h3>
+                              <p className="text-text-primary font-bold mb-4">₹{item.price}</p>
                               <div className="flex space-x-2">
                                 <button
                                   onClick={() => window.location.href = `/product/${item.productId}`}
-                                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium"
+                                  className="flex-1 bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium"
                                 >
                                   View Details
                                 </button>
@@ -366,15 +368,15 @@ const UserDashboard = () => {
 
                 {activeTab === 'addresses' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6">Saved Addresses</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-text-primary">Saved Addresses</h2>
                     {addressLoading ? (
-                      <p className="text-gray-500">Loading addresses...</p>
+                      <p className="text-text-secondary">Loading addresses...</p>
                     ) : (
                       <div>
-                        <ul className="mb-4">
+                        <ul className="mb-4 space-y-2">
                           {addresses.map((addr: string, idx: number) => (
-                            <li key={idx} className="flex justify-between items-center mb-2">
-                              <span>{addr}</span>
+                            <li key={idx} className="flex justify-between items-center p-3 bg-background rounded-lg">
+                              <span className="text-text-secondary">{addr}</span>
                               <button onClick={() => handleRemoveAddress(addr)} className="text-red-500 hover:underline">Remove</button>
                             </li>
                           ))}
@@ -384,10 +386,10 @@ const UserDashboard = () => {
                             type="text"
                             value={addressInput}
                             onChange={e => setAddressInput(e.target.value)}
-                            className="px-3 py-2 border rounded-lg"
+                            className="flex-grow px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
                             placeholder="Add new address"
                           />
-                          <button onClick={handleAddAddress} className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium">Add</button>
+                          <button onClick={handleAddAddress} className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium">Add</button>
                         </div>
                       </div>
                     )}
@@ -396,103 +398,63 @@ const UserDashboard = () => {
 
                 {activeTab === 'payments' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6">Payment Methods</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-text-primary">Payment Methods</h2>
                     {paymentLoading ? (
-                      <p className="text-gray-500">Loading payment methods...</p>
+                      <p className="text-text-secondary">Loading payment methods...</p>
                     ) : (
                       <div>
-                        <ul className="mb-4">
+                        <ul className="mb-4 space-y-2">
                           {payments.map((pay: any, idx: number) => (
-                            <li key={idx} className="flex justify-between items-center mb-2">
-                              <span className="flex items-center gap-2">
-                                {pay.type === 'card' ? (
-                                  <CreditCard className="w-5 h-5 text-blue-600" />
-                                ) : (
-                                  <span className="inline-block w-5 h-5 bg-green-600 rounded-full text-white text-xs flex items-center justify-center">UPI</span>
-                                )}
+                            <li key={idx} className="flex justify-between items-center p-3 bg-background rounded-lg">
+                              <span className="flex items-center gap-2 text-text-secondary">
+                                {pay.type === 'card' ? <CreditCard className="w-5 h-5 text-blue-600" /> : <span className="text-green-600 font-bold">UPI</span>}
                                 {pay.type === 'card'
-                                  ? `Card ending ${pay.last4} (${pay.expiry})`
+                                  ? `Card ending in ${pay.last4} (${pay.expiry})`
                                   : `UPI: ${pay.upiId}`}
                               </span>
                               <button onClick={() => handleRemovePayment(pay)} className="text-red-500 hover:underline">Remove</button>
                             </li>
                           ))}
                         </ul>
-                        <button onClick={() => setShowPaymentModal(true)} className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium">Add Payment Method</button>
+                        <button onClick={() => setShowPaymentModal(true)} className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium">Add Payment Method</button>
                         {showPaymentModal && (
                           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fadeIn">
-                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+                            <div className="bg-card rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
                               <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowPaymentModal(false)}>&times;</button>
-                              <h3 className="text-xl font-bold mb-4 text-yellow-700">Add Payment Method</h3>
+                              <h3 className="text-xl font-bold mb-4 text-primary-dark">Add Payment Method</h3>
                               <div className="mb-4 flex gap-4">
-                                <button onClick={() => setPaymentType('card')} className={`px-4 py-2 rounded-lg font-medium ${paymentType === 'card' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Card</button>
-                                <button onClick={() => setPaymentType('upi')} className={`px-4 py-2 rounded-lg font-medium ${paymentType === 'upi' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'}`}>UPI</button>
+                                <button onClick={() => setPaymentType('card')} className={`px-4 py-2 rounded-lg font-medium ${paymentType === 'card' ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'}`}>Card</button>
+                                <button onClick={() => setPaymentType('upi')} className={`px-4 py-2 rounded-lg font-medium ${paymentType === 'upi' ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'}`}>UPI</button>
                               </div>
                               <form onSubmit={handleAddPayment} className="space-y-4">
                                 {paymentType === 'card' ? (
                                   <>
                                     <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
-                                      <input
-                                        type="text"
-                                        maxLength={16}
-                                        value={cardDetails.cardNumber.replace(/\D/g, '')}
-                                        onChange={e => setCardDetails({ ...cardDetails, cardNumber: e.target.value.replace(/\D/g, '') })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                        placeholder="1234 5678 9012 3456"
-                                        required
-                                      />
+                                      <label className="block text-sm font-medium text-text-secondary mb-1">Card Number</label>
+                                      <input type="text" maxLength={16} value={cardDetails.cardNumber.replace(/\D/g, '')} onChange={e => setCardDetails({ ...cardDetails, cardNumber: e.target.value.replace(/\D/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" placeholder="1234 5678 9012 3456" required />
                                     </div>
                                     <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Name on Card</label>
-                                      <input
-                                        type="text"
-                                        value={cardDetails.name}
-                                        onChange={e => setCardDetails({ ...cardDetails, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                        required
-                                      />
+                                      <label className="block text-sm font-medium text-text-secondary mb-1">Name on Card</label>
+                                      <input type="text" value={cardDetails.name} onChange={e => setCardDetails({ ...cardDetails, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" required />
                                     </div>
                                     <div className="flex gap-4">
                                       <div className="flex-1">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Expiry (MM/YY)</label>
-                                        <input
-                                          type="text"
-                                          maxLength={5}
-                                          value={cardDetails.expiry}
-                                          onChange={e => setCardDetails({ ...cardDetails, expiry: e.target.value.replace(/[^\d\/]/g, '') })}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                          placeholder="MM/YY"
-                                          required
-                                        />
+                                        <label className="block text-sm font-medium text-text-secondary mb-1">Expiry (MM/YY)</label>
+                                        <input type="text" maxLength={5} value={cardDetails.expiry} onChange={e => setCardDetails({ ...cardDetails, expiry: e.target.value.replace(/[^\d\/]/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" placeholder="MM/YY" required />
                                       </div>
                                       <div className="flex-1">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">CVV</label>
-                                        <input
-                                          type="password"
-                                          maxLength={3}
-                                          value={cardDetails.cvv}
-                                          onChange={e => setCardDetails({ ...cardDetails, cvv: e.target.value.replace(/\D/g, '') })}
-                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                          required
-                                        />
+                                        <label className="block text-sm font-medium text-text-secondary mb-1">CVV</label>
+                                        <input type="password" maxLength={3} value={cardDetails.cvv} onChange={e => setCardDetails({ ...cardDetails, cvv: e.target.value.replace(/\D/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" required />
                                       </div>
                                     </div>
                                   </>
                                 ) : (
                                   <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">UPI ID</label>
-                                    <input
-                                      type="text"
-                                      value={upiId}
-                                      onChange={e => setUpiId(e.target.value)}
-                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                      placeholder="yourupi@bank"
-                                      required
-                                    />
+                                    <label className="block text-sm font-medium text-text-secondary mb-1">UPI ID</label>
+                                    <input type="text" value={upiId} onChange={e => setUpiId(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" placeholder="yourupi@bank" required />
                                   </div>
                                 )}
-                                <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium">Add</button>
+                                <button type="submit" className="w-full bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium">Add</button>
                               </form>
                             </div>
                           </div>
@@ -504,39 +466,39 @@ const UserDashboard = () => {
 
                 {activeTab === 'profile' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6">Profile Settings</h2>
+                    <h2 className="text-2xl font-bold mb-6 text-text-primary">Profile Settings</h2>
                     {profileLoading ? (
-                      <p className="text-gray-500">Loading profile...</p>
+                      <p className="text-text-secondary">Loading profile...</p>
                     ) : (
                       <form className="space-y-6" onSubmit={handleProfileSave}>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                          <label className="block text-sm font-medium text-text-secondary mb-1">Full Name</label>
                           <input
                             type="text"
                             value={profileEdit.name}
                             onChange={e => setProfileEdit({ ...profileEdit, name: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                          <label className="block text-sm font-medium text-text-secondary mb-1">Email</label>
                           <input
                             type="email"
                             value={profileEdit.email}
                             onChange={e => setProfileEdit({ ...profileEdit, email: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                          <label className="block text-sm font-medium text-text-secondary mb-1">Phone</label>
                           <input
                             type="tel"
                             value={profileEdit.phone}
                             onChange={e => setProfileEdit({ ...profileEdit, phone: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
                           />
                         </div>
-                        <button type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        <button type="submit" className="bg-accent hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
                           Save Changes
                         </button>
                       </form>

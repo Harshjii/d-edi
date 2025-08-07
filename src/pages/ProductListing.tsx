@@ -68,12 +68,12 @@ const ProductListing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">{categoryTitle}</h1>
-          <p className="text-gray-600">Discover our premium collection of {categoryTitle.toLowerCase()}</p>
+          <h1 className="text-4xl font-bold text-text-primary mb-4">{categoryTitle}</h1>
+          <p className="text-text-secondary">Discover our premium collection of {categoryTitle.toLowerCase()}</p>
         </div>
 
         {/* Category Tabs */}
@@ -82,7 +82,7 @@ const ProductListing = () => {
             onClick={() => setSelectedCategory('all')}
             className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
               selectedCategory === 'all'
-                ? 'bg-yellow-500 text-white shadow-md'
+                ? 'bg-primary text-white shadow-md'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -92,7 +92,7 @@ const ProductListing = () => {
             <button
               key={cat.id}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap ${
-                selectedCategory === cat.name ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'
+                selectedCategory === cat.name ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
               }`}
               onClick={() => setSelectedCategory(cat.name)}
             >
@@ -106,12 +106,12 @@ const ProductListing = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow hover:shadow-md transition-shadow"
+              className="flex items-center space-x-2 bg-card px-4 py-2 rounded-lg shadow hover:shadow-md transition-shadow"
             >
               <Filter className="w-4 h-4" />
               <span>Filters</span>
             </button>
-            <span className="text-gray-600">{displayProducts.length} products</span>
+            <span className="text-text-secondary">{displayProducts.length} products</span>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -137,7 +137,7 @@ const ProductListing = () => {
                   search: params.toString()
                 });
               }}
-              className="bg-white px-4 py-2 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="bg-card px-4 py-2 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="featured">Featured</option>
               <option value="price-low">Price: Low to High</option>
@@ -146,16 +146,16 @@ const ProductListing = () => {
               <option value="newest">Newest</option>
             </select>
 
-            <div className="flex bg-white rounded-lg shadow">
+            <div className="flex bg-card rounded-lg shadow">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-l-lg ${viewMode === 'grid' ? 'bg-yellow-500 text-white' : 'text-gray-600'}`}
+                className={`p-2 rounded-l-lg ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-gray-600'}`}
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-r-lg ${viewMode === 'list' ? 'bg-yellow-500 text-white' : 'text-gray-600'}`}
+                className={`p-2 rounded-r-lg ${viewMode === 'list' ? 'bg-primary text-white' : 'text-gray-600'}`}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -167,7 +167,7 @@ const ProductListing = () => {
           {/* Sidebar Filters */}
           {showFilters && (
             <div className="lg:w-1/4">
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-card rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold mb-4">Filters</h3>
 
                 {/* Price Range */}
@@ -182,7 +182,7 @@ const ProductListing = () => {
                       onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                       className="w-full"
                     />
-                    <div className="flex justify-between text-sm text-gray-600">
+                    <div className="flex justify-between text-sm text-text-secondary">
                       <span>₹{priceRange[0]}</span>
                       <span>₹{priceRange[1]}</span>
                     </div>
@@ -199,8 +199,8 @@ const ProductListing = () => {
                         onClick={() => toggleSize(size)}
                         className={`px-3 py-1 rounded border ${
                           selectedSizes.includes(size)
-                            ? 'bg-yellow-500 text-white border-yellow-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-500'
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-primary'
                         }`}
                       >
                         {size}
@@ -217,7 +217,7 @@ const ProductListing = () => {
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {displayProducts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow group">
+                  <div key={product.id} className="bg-card rounded-lg shadow hover:shadow-lg transition-shadow group">
                     <div className="relative overflow-hidden rounded-t-lg">
                       <img
                         src={product.images[0]}
@@ -260,23 +260,23 @@ const ProductListing = () => {
                       )}
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                      <h3 className="font-semibold text-text-primary mb-2">{product.name}</h3>
+                      <p className="text-text-secondary text-sm mb-3 line-clamp-2">{product.description}</p>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
-                          <span className="text-lg font-bold text-gray-900">₹{product.price}</span>
+                          <span className="text-lg font-bold text-text-primary">₹{product.price}</span>
                           {product.originalPrice && (
                             <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
                           )}
                         </div>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm text-gray-600">{product.rating}</span>
+                          <span className="text-sm text-text-secondary">{product.rating}</span>
                         </div>
                       </div>
                       <Link
                         to={`/product/${product.id}`}
-                        className="block w-full bg-yellow-500 hover:bg-yellow-600 text-white text-center py-2 rounded-lg font-medium transition-colors"
+                        className="block w-full bg-primary hover:bg-primary-dark text-white text-center py-2 rounded-lg font-medium transition-colors"
                       >
                         View Details
                       </Link>
@@ -287,7 +287,7 @@ const ProductListing = () => {
             ) : (
               <div className="space-y-4">
                 {displayProducts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6">
+                  <div key={product.id} className="bg-card rounded-lg shadow hover:shadow-lg transition-shadow p-6">
                     <div className="flex flex-col md:flex-row gap-6">
                       <div className="md:w-1/4">
                         <img
@@ -298,7 +298,7 @@ const ProductListing = () => {
                       </div>
                       <div className="md:w-3/4">
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-xl font-semibold text-gray-900">{product.name}</h3>
+                          <h3 className="text-xl font-semibold text-text-primary">{product.name}</h3>
                           <button 
                             onClick={async (e) => {
                               e.preventDefault();
@@ -329,23 +329,23 @@ const ProductListing = () => {
                             <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
                           </button>
                         </div>
-                        <p className="text-gray-600 mb-4">{product.description}</p>
+                        <p className="text-text-secondary mb-4">{product.description}</p>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2">
-                              <span className="text-2xl font-bold text-gray-900">₹{product.price}</span>
+                              <span className="text-2xl font-bold text-text-primary">₹{product.price}</span>
                               {product.originalPrice && (
                                 <span className="text-lg text-gray-500 line-through">₹{product.originalPrice}</span>
                               )}
                             </div>
                             <div className="flex items-center space-x-1">
                               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm text-gray-600">{product.rating} ({product.reviews} reviews)</span>
+                              <span className="text-sm text-text-secondary">{product.rating} ({product.reviews} reviews)</span>
                             </div>
                           </div>
                           <Link
                             to={`/product/${product.id}`}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                            className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg font-medium transition-colors"
                           >
                             View Details
                           </Link>
@@ -359,7 +359,7 @@ const ProductListing = () => {
 
             {displayProducts.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No products found matching your criteria.</p>
+                <p className="text-text-secondary text-lg">No products found matching your criteria.</p>
               </div>
             )}
           </div>
@@ -367,7 +367,7 @@ const ProductListing = () => {
       </div>
       {/* Toast Notification */}
       {showToast && (
-        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
+        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-primary text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
           {toastMessage}
         </div>
       )}

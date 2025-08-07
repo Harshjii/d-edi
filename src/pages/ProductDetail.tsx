@@ -202,27 +202,27 @@ const ProductDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-background relative">
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="mb-8">
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-yellow-600">Home</Link>
+          <div className="flex items-center space-x-2 text-sm text-text-secondary">
+            <Link to="/" className="hover:text-accent">Home</Link>
             <span>/</span>
-            <Link to="/products" className="hover:text-yellow-600">Products</Link>
+            <Link to="/products" className="hover:text-accent">Products</Link>
             <span>/</span>
-            <Link to={`/products/${product.category}`} className="hover:text-yellow-600 capitalize">
+            <Link to={`/products/${product.category}`} className="hover:text-accent capitalize">
               {product.category.replace('-', ' ')}
             </Link>
             <span>/</span>
-            <span className="text-gray-900">{product.name}</span>
+            <span className="text-text-primary">{product.name}</span>
           </div>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="aspect-square rounded-lg overflow-hidden bg-white shadow-lg">
+            <div className="aspect-square rounded-lg overflow-hidden bg-card shadow-lg">
               <img
                 src={product.images[selectedImage]}
                 alt={product.name}
@@ -236,7 +236,7 @@ const ProductDetail = () => {
                     key={index}
                     onClick={() => setSelectedImage(index)}
                     className={`aspect-square rounded-lg overflow-hidden ${
-                      selectedImage === index ? 'ring-2 ring-yellow-500' : ''
+                      selectedImage === index ? 'ring-2 ring-primary' : ''
                     }`}
                   >
                     <img
@@ -253,7 +253,7 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">{product.name}</h1>
+              <h1 className="text-3xl lg:text-4xl font-bold text-text-primary mb-2">{product.name}</h1>
               <div className="flex items-center space-x-4 mb-4">
                 <div className="flex items-center space-x-1">
                   {[...Array(5)].map((_, i) => (
@@ -264,20 +264,20 @@ const ProductDetail = () => {
                       }`}
                     />
                   ))}
-                  <span className="text-gray-600 ml-2">({product.reviews} reviews)</span>
+                  <span className="text-text-secondary ml-2">({product.reviews} reviews)</span>
                 </div>
               </div>
-              <p className="text-gray-600 text-lg leading-relaxed">{product.description}</p>
+              <p className="text-text-secondary text-lg leading-relaxed">{product.description}</p>
             </div>
 
             {/* Price */}
             <div className="flex items-center space-x-4">
-              <span className="text-3xl font-bold text-gray-900">₹{product.price}</span>
+              <span className="text-3xl font-bold text-text-primary">₹{product.price}</span>
               {product.originalPrice && (
                 <span className="text-xl text-gray-500 line-through">₹{product.originalPrice}</span>
               )}
               {product.originalPrice && (
-                <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                <span className="bg-accent text-white px-3 py-1 rounded-full text-sm font-semibold">
                   {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                 </span>
               )}
@@ -293,8 +293,8 @@ const ProductDetail = () => {
                     onClick={() => setSelectedSize(size)}
                     className={`px-3 py-2 sm:px-4 border rounded-lg font-medium transition-colors text-sm sm:text-base ${
                       selectedSize === size
-                        ? 'bg-yellow-500 text-white border-yellow-500'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-500'
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-card text-gray-700 border-gray-300 hover:border-primary'
                     }`}
                   >
                     {size}
@@ -313,8 +313,8 @@ const ProductDetail = () => {
                     onClick={() => setSelectedColor(color)}
                     className={`px-3 py-2 sm:px-4 border rounded-lg font-medium transition-colors text-sm sm:text-base ${
                       selectedColor === color
-                        ? 'bg-yellow-500 text-white border-yellow-500'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-yellow-500'
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-card text-gray-700 border-gray-300 hover:border-primary'
                     }`}
                   >
                     {color}
@@ -327,7 +327,7 @@ const ProductDetail = () => {
             <div>
               <h3 className="text-lg font-semibold mb-3">Quantity</h3>
               <div className="flex items-center space-x-4">
-                <div className="flex items-center border border-gray-300 rounded-lg bg-white">
+                <div className="flex items-center border border-gray-300 rounded-lg bg-card">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="p-2 sm:p-3 hover:bg-gray-100 rounded-l-lg transition-colors"
@@ -358,7 +358,7 @@ const ProductDetail = () => {
                 className={`flex-1 px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg ${
                   !product.inStock 
                     ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-yellow-500 hover:bg-yellow-600 text-white hover:shadow-xl'
+                    : 'bg-primary hover:bg-primary-dark text-white hover:shadow-xl'
                 }`}
               >
                 <ShoppingCart className="w-5 h-5" />
@@ -369,13 +369,13 @@ const ProductDetail = () => {
                 className={`flex-1 px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors relative shadow-lg ${
                   !product.inStock || loadingBuy
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-red-600 hover:bg-red-700 text-white hover:shadow-xl'
+                    : 'bg-accent hover:bg-accent-dark text-white hover:shadow-xl'
                 }`}
                 disabled={!product.inStock || loadingBuy}
               >
                 {loadingBuy ? (
                   <span className="flex items-center justify-center w-full">
-                    <span className="loader-bar bg-yellow-500 h-2 w-full absolute left-0 top-0 animate-pulse" style={{ borderRadius: '4px' }}></span>
+                    <span className="loader-bar bg-primary-light h-2 w-full absolute left-0 top-0 animate-pulse" style={{ borderRadius: '4px' }}></span>
                     <span className="ml-2">Processing...</span>
                   </span>
                 ) : (
@@ -417,7 +417,7 @@ const ProductDetail = () => {
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setShowReviewModal(false)}></div>
             
-            <div className="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+            <div className="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-card shadow-xl rounded-lg">
               <div className="px-6 py-4 border-b">
                 <h3 className="text-lg font-semibold">Write a Review</h3>
               </div>
@@ -453,7 +453,7 @@ const ProductDetail = () => {
                     value={reviewForm.comment}
                     onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
                     rows={4}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                     required
                   ></textarea>
                 </div>
@@ -469,7 +469,7 @@ const ProductDetail = () => {
                   <button
                     type="submit"
                     disabled={submittingReview}
-                    className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50"
                   >
                     {submittingReview ? 'Submitting...' : 'Submit Review'}
                   </button>
@@ -482,7 +482,7 @@ const ProductDetail = () => {
 
       {/* Toast pop-up for Add to Cart and errors */}
       {showToast && (
-        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
+        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-primary text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
           {errorMsg}
         </div>
       )}
@@ -492,15 +492,15 @@ const ProductDetail = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="flex items-center space-x-3">
                   <Truck className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-gray-600">Free Shipping</span>
+                  <span className="text-sm text-text-secondary">Free Shipping</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <RotateCcw className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm text-gray-600">Easy Returns</span>
+                  <span className="text-sm text-text-secondary">Easy Returns</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Shield className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm text-gray-600">Secure Payment</span>
+                  <span className="text-sm text-text-secondary">Secure Payment</span>
                 </div>
               </div>
             </div>
@@ -509,13 +509,13 @@ const ProductDetail = () => {
 
         {/* Reviews Section */}
         <div className="mt-8">
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="bg-card rounded-lg shadow-lg p-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Reviews</h2>
               {user && (
                 <button
                   onClick={() => setShowReviewModal(true)}
-                  className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors"
+                  className="flex items-center space-x-2 bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg transition-colors"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Add Review</span>
@@ -580,7 +580,7 @@ const ProductDetail = () => {
                 </div>
               ))}
               {reviews.length === 0 && (
-                <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to review!</p>
+                <p className="text-text-secondary text-center py-8">No reviews yet. Be the first to review!</p>
               )}
             </div>
           </div>
@@ -588,30 +588,30 @@ const ProductDetail = () => {
 
         {/* Product Details Tabs */}
         <div className="mt-8">
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="bg-card rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-bold mb-6">Product Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-lg font-semibold mb-4">Description</h3>
-                <p className="text-gray-600 leading-relaxed">{product.description}</p>
+                <p className="text-text-secondary leading-relaxed">{product.description}</p>
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-4">Specifications</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Category:</span>
+                    <span className="text-text-secondary">Category:</span>
                     <span className="font-medium capitalize">{product.category.replace('-', ' ')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Available Sizes:</span>
+                    <span className="text-text-secondary">Available Sizes:</span>
                     <span className="font-medium">{product.sizes.join(', ')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Available Colors:</span>
+                    <span className="text-text-secondary">Available Colors:</span>
                     <span className="font-medium">{product.colors.join(', ')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Rating:</span>
+                    <span className="text-text-secondary">Rating:</span>
                     <span className="font-medium">{product.rating}/5</span>
                   </div>
                 </div>

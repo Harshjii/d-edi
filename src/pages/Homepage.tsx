@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ArrowRight, Truck, Shield, Headphones, RotateCcw } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
+import HeroPoster from '../assets/lbb.jpg';
 
 // Utility to get all unique categories from products
 const useProductCategories = () => {
@@ -14,214 +15,216 @@ const Homepage = () => {
   const featuredProducts = getFeaturedProducts();
   const categories = useProductCategories();
 
+  const cloudinaryVideoUrl = "https://res.cloudinary.com/djfkvsxj0/video/upload/v1754578040/5743177-uhd_4096_2160_25fps_edjhu6.mp4";
+
+  // Add loading state for video
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
+  // Only render the page after the video is loaded
+  if (!videoLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-xl text-text-secondary">Loading...</p>
+        </div>
+        {/* Hidden video for preloading */}
+        <video
+          src={cloudinaryVideoUrl}
+          style={{ display: 'none' }}
+          onCanPlayThrough={() => setVideoLoaded(true)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-text-primary">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-yellow-400 via-red-500 to-red-600 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="relative container mx-auto px-4 py-20 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8 animate-fadeInUp">
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight drop-shadow-lg">
-                <span className="block text-yellow-300 animate-gradient">D-EDI</span>
-                <span className="block">Premium Fashion Collection</span>
-              </h1>
-              <p className="text-xl lg:text-2xl text-yellow-100 leading-relaxed">
-                Discover exclusive custom clothing with modern designs and Indian ethnic flair. Shop like a pro, feel unique.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/products"
-                  className="bg-white text-red-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-yellow-50 transition-colors flex items-center justify-center group shadow-lg hover:scale-105"
-                >
-                  Shop Now
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  to="/products/ethnic"
-                  className="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-red-600 transition-colors flex items-center justify-center shadow-lg hover:scale-105"
-                >
-                  Ethnic Collection
-                </Link>
-              </div>
-              <div className="flex items-center space-x-8 text-yellow-100">
-                <div className="text-center">
-                  <div className="text-3xl font-bold">{featuredProducts.length}</div>
-                  <div className="text-sm">Featured Products</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold">{categories.length}</div>
-                  <div className="text-sm">Categories</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold">4.8</div>
-                  <div className="text-sm">Rating</div>
-                </div>
-              </div>
-            </div>
-            <div className="relative animate-fadeInUp flex justify-center">
-              <img
-                src="https://images.pexels.com/photos/8422805/pexels-photo-8422805.jpeg"
-                alt="Fashion Model"
-                className="rounded-2xl shadow-2xl object-cover w-full h-96 lg:h-[600px] animate-zoomIn border-4 border-yellow-300"
-              />
-            </div>
-          </div>
+      <section className="relative h-[90vh] flex items-center justify-center text-center text-white overflow-hidden">
+        <div className="absolute inset-0 bg-primary-dark opacity-80 z-10"></div>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          poster={HeroPoster}
+          className="absolute z-0 w-full h-full object-cover"
+          src={cloudinaryVideoUrl}
+          onCanPlayThrough={() => setVideoLoaded(true)}
+        >
+          Your browser does not support the video tag.
+        </video>
+        <div className="relative z-20 container mx-auto px-4 animate-fadeInUp">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-4 text-shadow-lg">
+            Style Redefined
+          </h1>
+          <p className="max-w-3xl mx-auto text-lg md:text-xl lg:text-2xl text-secondary-light mb-8 text-shadow">
+            Discover exclusive custom clothing with modern designs and Indian ethnic flair. Shop like a pro, feel unique.
+          </p>
+          <Link
+            to="/products"
+            className="inline-block bg-gradient-to-r from-accent to-accent-dark text-white font-bold text-lg px-10 py-4 rounded-full shadow-lg transform transition-transform hover:scale-105 animate-background-pan"
+            style={{ backgroundSize: '200%' }}
+          >
+            Explore The Collection
+          </Link>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
             <div className="text-center group animate-fadeInUp">
-              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                <Truck className="w-8 h-8 text-white" />
+              <div className="flex items-center justify-center mb-4">
+                <Truck className="w-10 h-10 text-accent" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Free Shipping</h3>
-              <p className="text-gray-600">Free delivery on orders above ₹999</p>
+              <h3 className="text-xl font-bold mb-2">Free Shipping</h3>
+              <p className="text-text-secondary">On all orders over ₹999</p>
             </div>
-            <div className="text-center group animate-fadeInUp">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                <Shield className="w-8 h-8 text-white" />
+            <div className="text-center group animate-fadeInUp" style={{ animationDelay: '150ms' }}>
+              <div className="flex items-center justify-center mb-4">
+                <Shield className="w-10 h-10 text-accent" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Secure Payment</h3>
-              <p className="text-gray-600">100% secure payment processing</p>
+              <h3 className="text-xl font-bold mb-2">Secure Payments</h3>
+              <p className="text-text-secondary">Protected by Stripe & SSL</p>
             </div>
-            <div className="text-center group animate-fadeInUp">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                <RotateCcw className="w-8 h-8 text-white" />
+            <div className="text-center group animate-fadeInUp" style={{ animationDelay: '300ms' }}>
+              <div className="flex items-center justify-center mb-4">
+                <RotateCcw className="w-10 h-10 text-accent" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Easy Returns</h3>
-              <p className="text-gray-600">30-day hassle-free returns</p>
+              <h3 className="text-xl font-bold mb-2">Easy Returns</h3>
+              <p className="text-text-secondary">30-day money-back guarantee</p>
             </div>
-            <div className="text-center group animate-fadeInUp">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                <Headphones className="w-8 h-8 text-white" />
+            <div className="text-center group animate-fadeInUp" style={{ animationDelay: '450ms' }}>
+              <div className="flex items-center justify-center mb-4">
+                <Headphones className="w-10 h-10 text-accent" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">24/7 Support</h3>
-              <p className="text-gray-600">Round the clock customer support</p>
+              <h3 className="text-xl font-bold mb-2">24/7 Support</h3>
+              <p className="text-text-secondary">Always here to help you</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Categories Section */}
-      <section className="py-20">
+      <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">Shop by Category</h2>
-            <p className="text-xl text-gray-600">Discover our premium collection of clothing</p>
+            <h2 className="text-4xl lg:text-5xl font-extrabold text-text-primary mb-4">Shop by Category</h2>
+            <p className="text-xl text-text-secondary max-w-2xl mx-auto">
+              From timeless classics to modern trends, find your perfect fit.
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.length === 0 ? (
-              <div className="text-center py-12 col-span-4">
-                <p className="text-gray-500 text-lg">No categories found. Add products to see categories.</p>
-              </div>
-            ) : (
-              categories.map((cat) => (
-                <Link
-                  key={cat}
-                  to={`/products/${cat}`}
-                  className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 bg-white animate-fadeInUp border-2 border-gray-100 hover:border-yellow-400"
-                >
-                  <div className="aspect-w-3 aspect-h-4">
-                    <img
-                      src={
-                        cat === 'mens' ? 'https://images.pexels.com/photos/8532616/pexels-photo-8532616.jpeg'
-                        : cat === 'womens' ? 'https://images.pexels.com/photos/7679720/pexels-photo-7679720.jpeg'
-                        : cat === 'kids' ? 'https://images.pexels.com/photos/8720680/pexels-photo-8720680.jpeg'
-                        : 'https://images.pexels.com/photos/8422805/pexels-photo-8422805.jpeg'
-                      }
-                      alt={cat}
-                      className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-500 rounded-t-2xl"
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <h3 className="text-2xl font-bold mb-2">{cat.charAt(0).toUpperCase() + cat.slice(1)}</h3>
-                    <p className="text-gray-200">Shop the latest in {cat}</p>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">Featured Products</h2>
-            <p className="text-xl text-gray-600">Handpicked items from our latest collection</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredProducts.slice(0, 6).map((product) => (
+            {categories.map((cat, index) => (
               <Link
-                key={product.id}
-                to={`/product/${product.id}`}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 group overflow-hidden animate-fadeInUp border-2 border-gray-100 hover:border-yellow-400"
+                key={cat}
+                to={`/products/${cat}`}
+                className="group relative block overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 animate-fadeInUp"
+                style={{ animationDelay: `${index * 150}ms` }}
               >
-                <div className="relative overflow-hidden">
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500 rounded-t-2xl"
-                  />
-                  {product.originalPrice && (
-                    <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold animate-bounce">
-                      {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                    </div>
-                  )}
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2 text-gray-900 group-hover:text-yellow-600 transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-gray-900">₹{product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-lg text-gray-500 line-through">₹{product.originalPrice}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm text-gray-600">{product.rating} ({product.reviews})</span>
-                    </div>
+                <img
+                  src={
+                    cat === 'mens' ? 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+                    : cat === 'womens' ? 'https://images.pexels.com/photos/1126993/pexels-photo-1126993.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+                    : cat === 'kids' ? 'https://images.pexels.com/photos/1620760/pexels-photo-1620760.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+                    : 'https://images.pexels.com/photos/994523/pexels-photo-994523.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+                  }
+                  alt={cat}
+                  className="w-full h-96 object-cover transform group-hover:scale-110 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 p-8">
+                  <h3 className="text-3xl font-bold text-white mb-2">{cat.charAt(0).toUpperCase() + cat.slice(1)}</h3>
+                  <div className="flex items-center text-accent-light font-semibold">
+                    Shop Now <ArrowRight className="ml-2 w-5 h-5" />
                   </div>
                 </div>
               </Link>
             ))}
           </div>
+        </div>
+      </section>
 
-          <div className="text-center mt-12">
+      {/* Featured Products Section */}
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-extrabold text-text-primary mb-4">Featured Products</h2>
+            <p className="text-xl text-text-secondary max-w-2xl mx-auto">
+              Handpicked items from our latest collection, just for you.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {featuredProducts.slice(0, 4).map((product, index) => (
+              <div
+                key={product.id}
+                className="bg-card rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 group overflow-hidden animate-fadeInUp border border-gray-100"
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
+                <div className="relative overflow-hidden">
+                  <Link to={`/product/${product.id}`}>
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </Link>
+                  {product.originalPrice && (
+                    <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      SALE
+                    </div>
+                  )}
+                </div>
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold mb-2 text-text-primary h-14">
+                    <Link to={`/product/${product.id}`} className="hover:text-accent transition-colors">
+                      {product.name}
+                    </Link>
+                  </h3>
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xl font-bold text-text-primary">₹{product.price}</span>
+                      {product.originalPrice && (
+                        <span className="text-md text-gray-400 line-through">₹{product.originalPrice}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm text-text-secondary">{product.rating}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-16">
             <Link
               to="/products"
-              className="bg-gradient-to-r from-yellow-500 to-red-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-yellow-600 hover:to-red-700 transition-all inline-flex items-center group shadow-lg hover:scale-105"
+              className="text-accent font-bold text-lg inline-flex items-center group"
             >
               View All Products
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="ml-2 w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Newsletter Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-900 to-red-900 text-white">
+       {/* Newsletter Section */}
+       <section className="py-20 bg-primary text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-4">Stay Updated</h2>
-          <p className="text-xl mb-8 text-blue-100">Get the latest updates on new arrivals and exclusive offers</p>
-          <div className="max-w-md mx-auto flex shadow-lg rounded-lg overflow-hidden animate-fadeInUp">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-4">Join Our Community</h2>
+          <p className="text-xl mb-8 text-secondary-light">Get the latest updates on new arrivals and exclusive offers.</p>
+          <div className="max-w-md mx-auto flex shadow-lg rounded-full overflow-hidden animate-fadeInUp border-2 border-primary-light">
             <input
               type="email"
               placeholder="Enter your email"
-              className="flex-1 px-6 py-4 rounded-l-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="flex-1 px-6 py-4 rounded-l-full text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
             />
-            <button className="bg-yellow-500 hover:bg-yellow-600 px-8 py-4 rounded-r-lg font-semibold transition-colors">
+            <button className="bg-accent hover:bg-accent-dark px-8 py-4 rounded-r-full font-semibold transition-colors">
               Subscribe
             </button>
           </div>

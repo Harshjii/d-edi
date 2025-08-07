@@ -1,35 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { getAuth, confirmPasswordReset } from 'firebase/auth';
-import { Mail, Lock, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { getAuth, confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
+import { Lock, ArrowLeft, Check, AlertCircle } from 'lucide-react';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [status, setStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [oobCode, setOobCode] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [verifying, setVerifying] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  // Extract oobCode from query params
-  const params = new URLSearchParams(location.search);
-  const oobCode = params.get('oobCode');
-  const mode = params.get('mode');
+  useEffect(() => {
+    // Extract oobCode from query params
+    const params = new URLSearchParams(location.search);
+    const code = params.get('oobCode');
+    if (!code) {
+      setError('Invalid or expired password reset link.');
+      setVerifying(false);
+      return;
+    }
+    setOobCode(code);
+
+    // Verify the code is valid
+    const auth = getAuth();
+    verifyPasswordResetCode(auth, code)
+      .then(() => setVerifying(false))
+      .catch(() => {
+        setError('This password reset link is invalid or has expired.');
+        setVerifying(false);
+      });
+  }, [location.search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus({ type: null, message: '' });
+    setError('');
+    setSuccess('');
 
-    if (!oobCode || mode !== 'resetPassword') {
-      setStatus({ type: 'error', message: 'Invalid or missing reset code.' });
-      return;
-    }
-    if (!password || password.length < 6) {
-      setStatus({ type: 'error', message: 'Password must be at least 6 characters.' });
+    if (!password || !confirmPassword) {
+      setError('Please enter and confirm your new password.');
       return;
     }
     if (password !== confirmPassword) {
-      setStatus({ type: 'error', message: 'Passwords do not match.' });
+      setError('Passwords do not match.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (!oobCode) {
+      setError('Invalid or expired password reset link.');
       return;
     }
 
@@ -37,68 +61,79 @@ const ResetPassword = () => {
     try {
       const auth = getAuth();
       await confirmPasswordReset(auth, oobCode, password);
-      setStatus({ type: 'success', message: 'Password has been reset. You can now log in.' });
+      setSuccess('Password reset successful! You can now log in.');
       setTimeout(() => navigate('/login'), 2000);
-    } catch (error: any) {
-      setStatus({ type: 'error', message: error.message || 'Failed to reset password.' });
+    } catch (err: any) {
+      setError('Failed to reset password. The link may have expired or is invalid.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-red-500 to-red-600 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">D</span>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900">Reset Password</h2>
-          <p className="text-gray-600 mt-2">Enter your new password below.</p>
+  if (verifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-xl text-text-secondary">Verifying reset link...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="bg-red-100 text-red-700 px-6 py-4 rounded-lg shadow text-center">
+          <p>{error}</p>
+          <button
+            className="mt-4 px-4 py-2 bg-accent text-white rounded-lg"
+            onClick={() => navigate('/forgot-password')}
+          >
+            Request New Link
+          </button>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-primary-dark flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-card rounded-2xl shadow-2xl p-8 animate-fadeInUp">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-accent font-bold text-2xl">D</span>
+          </div>
+          <h2 className="text-3xl font-bold text-text-primary">Reset Password</h2>
+          <p className="text-text-secondary mt-2">Enter your new password below.</p>
+        </div>
+        {success && (
+          <div className="bg-green-100 text-green-700 px-4 py-3 rounded-lg mb-4 text-center">
+            {success}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {status.type && (
-            <div className={`${
-              status.type === 'success'
-                ? 'bg-green-50 border-green-200 text-green-600'
-                : 'bg-red-50 border-red-200 text-red-600'
-            } px-4 py-3 rounded-lg border flex items-center`}>
-              {status.type === 'success' ? (
-                <Check className="w-5 h-5 mr-2" />
-              ) : (
-                <AlertCircle className="w-5 h-5 mr-2" />
-              )}
-              {status.message}
-            </div>
-          )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+            <label className="block text-sm font-medium text-text-secondary mb-1">New Password</label>
             <div className="relative">
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="Enter new password"
                 required
-                minLength={6}
-                disabled={loading}
               />
               <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+            <label className="block text-sm font-medium text-text-secondary mb-1">Confirm New Password</label>
             <div className="relative">
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="Confirm new password"
                 required
-                minLength={6}
-                disabled={loading}
               />
               <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" />
             </div>
@@ -106,15 +141,15 @@ const ResetPassword = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full bg-gradient-to-r from-yellow-500 to-red-600 text-white py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 ${
-              loading ? 'opacity-70 cursor-not-allowed' : 'hover:from-yellow-600 hover:to-red-700'
+            className={`w-full bg-accent hover:bg-accent-dark text-white py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >
             {loading ? 'Resetting...' : 'Reset Password'}
           </button>
         </form>
         <div className="mt-8 text-center">
-          <Link to="/login" className="inline-flex items-center text-yellow-600 hover:text-yellow-500 font-semibold">
+          <Link to="/login" className="inline-flex items-center text-accent hover:underline font-semibold">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Login
           </Link>

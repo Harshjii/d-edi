@@ -25,22 +25,12 @@ const ForgotPassword = () => {
       });
       setEmail('');
     } catch (error: any) {
-      // Firebase error codes
       if (error.code === 'auth/user-not-found') {
-        setStatus({
-          type: 'error',
-          message: 'No account found with this email address.'
-        });
+        setStatus({ type: 'error', message: 'No account found with this email address.' });
       } else if (error.code === 'auth/invalid-email') {
-        setStatus({
-          type: 'error',
-          message: 'Invalid email format.'
-        });
+        setStatus({ type: 'error', message: 'Invalid email format.' });
       } else {
-        setStatus({
-          type: 'error',
-          message: 'An error occurred. Please try again.'
-        });
+        setStatus({ type: 'error', message: 'An error occurred. Please try again.' });
       }
     } finally {
       setLoading(false);
@@ -48,15 +38,15 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-red-500 to-red-600 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
+    <div className="min-h-screen bg-primary-dark flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-card rounded-2xl shadow-2xl p-8 animate-fadeInUp">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">D</span>
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-accent font-bold text-2xl">D</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Reset Password</h2>
-          <p className="text-gray-600 mt-2">
-            Enter your email address and we'll send you a link to reset your password
+          <h2 className="text-3xl font-bold text-text-primary">Reset Password</h2>
+          <p className="text-text-secondary mt-2">
+            Enter your email and we'll send a link to reset your password
           </p>
         </div>
 
@@ -69,17 +59,13 @@ const ForgotPassword = () => {
                   : 'bg-red-50 border-red-200 text-red-600'
               } px-4 py-3 rounded-lg border flex items-center`}
             >
-              {status.type === 'success' ? (
-                <Check className="w-5 h-5 mr-2" />
-              ) : (
-                <AlertCircle className="w-5 h-5 mr-2" />
-              )}
+              {status.type === 'success' ? <Check className="w-5 h-5 mr-2" /> : <AlertCircle className="w-5 h-5 mr-2" />}
               {status.message}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-text-secondary mb-1">
               Email Address
             </label>
             <div className="relative">
@@ -87,7 +73,7 @@ const ForgotPassword = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                 placeholder="Enter your email"
                 required
               />
@@ -98,8 +84,8 @@ const ForgotPassword = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full bg-gradient-to-r from-yellow-500 to-red-600 text-white py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 ${
-              loading ? 'opacity-70 cursor-not-allowed' : 'hover:from-yellow-600 hover:to-red-700'
+            className={`w-full bg-accent hover:bg-accent-dark text-white py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >
             {loading ? 'Sending...' : 'Send Reset Link'}
@@ -109,7 +95,7 @@ const ForgotPassword = () => {
         <div className="mt-8">
           <Link
             to="/login"
-            className="inline-flex items-center text-yellow-600 hover:text-yellow-500 font-semibold"
+            className="inline-flex items-center text-accent hover:underline font-semibold"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Login

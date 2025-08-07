@@ -480,76 +480,44 @@ const Header = () => {
             <div className="bg-white shadow-lg w-64 max-w-full h-full p-6 overflow-y-auto relative">
               <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowMobileMenu(false)}>&times;</button>
               
-              {/* Categories Section */}
-              <h3 className="text-lg font-bold mb-4 text-yellow-700 flex items-center"><Menu className="w-5 h-5 mr-2" />Categories</h3>
+              {/* Navigation Links */}
               <div className="mb-6">
-                {categories.map((cat) => (
-                  <Link
-                    key={cat}
-                    to={`/products/${cat}`}
-                    className="block px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 text-base rounded-lg"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
-                  </Link>
-                ))}
-              </div>
-              
-              <div className="border-t pt-4">
-                {/* Profile Section */}
-                {user ? (
-                  <div className="mb-4">
-                    <div className="flex items-center space-x-3 px-3 py-2 mb-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-red-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{user.name || 'User'}</p>
-                        <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                      </div>
-                    </div>
-                    <Link
-                      to="/dashboard"
-                      className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-yellow-600 rounded-lg transition-colors mb-1"
-                      onClick={() => setShowMobileMenu(false)}
-                    >
-                      <User className="w-4 h-4 mr-3" />
-                      Dashboard
-                    </Link>
-                    {user.role === 'admin' && (
-                      <Link
-                        to="/admin"
-                        className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-50 hover:text-yellow-600 rounded-lg transition-colors mb-1"
-                        onClick={() => setShowMobileMenu(false)}
-                      >
-                        <User className="w-4 h-4 mr-3" />
-                        Admin Panel
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setShowMobileMenu(false);
-                      }}
-                      className="flex items-center w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mb-3"
-                    >
-                      <X className="w-4 h-4 mr-3" />
-                      Logout
-                    </button>
-                  </div>
-                ) : (
-                  <Link to="/login" className="block px-4 py-3 text-center bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors mb-3" onClick={() => setShowMobileMenu(false)}>
-                    Login
-                  </Link>
-                )}
-                
-                {/* Navigation Links */}
-                <Link to="/wishlist" className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" onClick={() => setShowMobileMenu(false)}>
+                <h3 className="text-lg font-bold text-yellow-700 flex items-center mb-4">Menu</h3>
+                <Link to="/" 
+                  className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" 
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  Home
+                </Link>
+                <Link to="/wishlist" 
+                  className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" 
+                  onClick={() => setShowMobileMenu(false)}
+                >
                   Wishlist
                 </Link>
-                <Link to="/cart" className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" onClick={() => setShowMobileMenu(false)}>
+                <Link to="/cart" 
+                  className="block px-4 py-3 text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 font-medium rounded-lg transition-colors" 
+                  onClick={() => setShowMobileMenu(false)}
+                >
                   Cart
                 </Link>
+              </div>
+              
+              {/* Categories Section */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-bold text-yellow-700 flex items-center mb-4"><Menu className="w-5 h-5 mr-2" />Categories</h3>
+                <div className="space-y-1">
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat}
+                      to={`/products/${cat}`}
+                      className="block px-4 py-2 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 text-base rounded-lg"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex-1" onClick={() => setShowMobileMenu(false)} />

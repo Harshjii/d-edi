@@ -59,8 +59,12 @@ const AdminPanel = () => {
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
+  // Product delete modal
+  const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+
   // Toast notification state
-  const [errorMsg, setErrorMsg] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
@@ -369,29 +373,39 @@ const AdminPanel = () => {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
+  // Product delete handler
+  const handleDeleteProduct = async (productId) => {
+    // Immediately close the modal before starting async work
+    setShowDeleteProductModal(false);
+    setProductToDelete(null);
     try {
-      // Get user auth ID from Firestore document
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        // Delete Firestore document
-        await deleteDoc(doc(db, 'users', userId));
-        
-        setUsers(prev => prev.filter(user => user.id !== userId));
-        setShowDeleteUserModal(false);
-        setUserToDelete(null);
-        
-        // Show success message
-        setErrorMsg('User deleted successfully');
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
-      }
+      await deleteProduct(productId);
+      setToastMessage('Product deleted successfully');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      setToastMessage('Error deleting product');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  // User delete handler 
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      setShowDeleteUserModal(false);
+      setUserToDelete(null);
+      setToastMessage('User deleted successfully');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (error) {
       console.error('Error deleting user:', error);
-      // Show error message
-      setErrorMsg('Failed to delete user');
+      setToastMessage('Error deleting user');
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 2000);
+      setTimeout(() => setShowToast(false), 3000);
       setShowDeleteUserModal(false);
       setUserToDelete(null);
     }
@@ -635,13 +649,13 @@ const AdminPanel = () => {
                       </button>
                       <button
                         onClick={() => {
-                          setUserToDelete(user);
-                          setShowDeleteUserModal(true);
+                          setProductToDelete(product);
+                          setShowDeleteProductModal(true);
                         }}
-                        className="text-red-600 hover:text-red-800"
-                        title="Delete User"
+                        className="flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-1"
                       >
-                        <Trash2 className="w-5 h-5 inline" />
+                        <Trash2 className="w-3 h-3" />
+                        <span>Delete</span>
                       </button>
                     </div>
                   </div>
@@ -1496,10 +1510,56 @@ const AdminPanel = () => {
         </div>
       )}
 
+      {/* Delete Product Confirmation Modal */}
+      {showDeleteProductModal && productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full relative">
+            <button 
+              className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" 
+              onClick={() => { 
+                setShowDeleteProductModal(false); 
+                setProductToDelete(null); 
+              }}
+            >
+              &times;
+            </button>
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">
+                Delete Product
+              </h3>
+              <p className="text-sm text-gray-600 text-center mb-6">
+                Are you sure you want to delete <strong>{productToDelete.name}</strong>? 
+                This action cannot be undone.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => {
+                    setShowDeleteProductModal(false);
+                    setProductToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteProduct(productToDelete.id)}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Delete Product
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+           )}
+
       {/* Toast Notification */}
       {showToast && (
-        <div className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-base sm:text-lg font-semibold animate-fadeIn max-w-sm sm:max-w-none mx-auto">
-          {errorMsg}
+        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+          {toastMessage}
         </div>
       )}
     </div>

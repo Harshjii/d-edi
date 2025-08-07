@@ -21,14 +21,27 @@ const ForgotPassword = () => {
       await sendPasswordResetEmail(auth, email);
       setStatus({
         type: 'success',
-        message: 'Password reset link has been sent to your email'
+        message: 'If an account exists with this email, a password reset link has been sent.'
       });
       setEmail('');
     } catch (error: any) {
-      setStatus({
-        type: 'error',
-        message: error.message || 'Failed to send reset email'
-      });
+      // Firebase error codes
+      if (error.code === 'auth/user-not-found') {
+        setStatus({
+          type: 'error',
+          message: 'No account found with this email address.'
+        });
+      } else if (error.code === 'auth/invalid-email') {
+        setStatus({
+          type: 'error',
+          message: 'Invalid email format.'
+        });
+      } else {
+        setStatus({
+          type: 'error',
+          message: 'An error occurred. Please try again.'
+        });
+      }
     } finally {
       setLoading(false);
     }

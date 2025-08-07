@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, X, Upload, Save, Search, ChevronLeft, ChevronRight, Check, CheckCircle, XCircle, Eye, MessageSquare } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Users, ShoppingCart, TrendingUp, X, Upload, Save, Search, ChevronLeft, ChevronRight, Check, CheckCircle, XCircle, Eye, MessageSquare, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductContext';
 import { db } from '../firebase';
@@ -319,7 +319,8 @@ const AdminPanel = () => {
     { id: 'products', label: 'Products', icon: Package },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     { id: 'users', label: 'Users', icon: Users },
-    { id: 'reviews', label: 'Reviews', icon: MessageSquare }
+    { id: 'reviews', label: 'Reviews', icon: MessageSquare },
+    { id: 'transactions', label: 'Transactions', icon: DollarSign }
   ];
 
   const totalUsersPages = Math.ceil(totalUsers / usersPerPage);
@@ -372,6 +373,25 @@ const AdminPanel = () => {
       console.error('Error marking as delivered:', error);
     }
   };
+
+    const handleApproveOrder = async (orderId) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status: 'Approved' });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Approved' } : o));
+    } catch (error) {
+      console.error('Error approving order:', error);
+    }
+  };
+
+  const handleDisapproveOrder = async (orderId) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status: 'Disapproved' });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Disapproved' } : o));
+    } catch (error) {
+      console.error('Error disapproving order:', error);
+    }
+  };
+
 
   // Product delete handler
   const handleDeleteProduct = async (productId) => {
@@ -1031,6 +1051,70 @@ const AdminPanel = () => {
                               <XCircle className="w-5 h-5" />
                             </button>
                             {/* Optionally add media view button here */}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Transactions Tab */}
+        {activeTab === 'transactions' && (
+          <div className="space-y-6">
+            <h2 className="text-xl md:text-2xl font-bold">Transactions</h2>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {orders.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          #{order.id.slice(-8)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {order.customerName || order.email}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ₹{order.amount}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            order.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                            order.status === 'Disapproved' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleApproveOrder(order.id)}
+                              className="text-green-600 hover:text-green-800 transition-colors"
+                              title="Approve Order"
+                            >
+                              <CheckCircle className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDisapproveOrder(order.id)}
+                              className="text-red-600 hover:text-red-800 transition-colors"
+                              title="Disapprove Order"
+                            >
+                              <XCircle className="w-5 h-5" />
+                            </button>
                           </div>
                         </td>
                       </tr>

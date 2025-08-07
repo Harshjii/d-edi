@@ -1,25 +1,29 @@
 // Get environment variables with fallbacks
 const getEnvVariable = (key: string, fallback: string = ''): string => {
-  if (import.meta.env[`VITE_${key}`]) {
+  // Try Vite env
+  if (import.meta.env && import.meta.env[`VITE_${key}`]) {
     return import.meta.env[`VITE_${key}`];
   }
-  // Fallback to window._env_ if defined
+  // Fallback to window._env_ if defined (for some deployments)
   if (typeof window !== 'undefined' && window._env_ && window._env_[key]) {
     return window._env_[key];
   }
   return fallback;
 };
 
-const CLOUDINARY_UPLOAD_PRESET = getEnvVariable('CLOUDINARY_UPLOAD_PRESET', 'your_preset');
-const CLOUDINARY_CLOUD_NAME = getEnvVariable('CLOUDINARY_CLOUD_NAME', 'your_cloud');
-const CLOUDINARY_API_KEY = getEnvVariable('CLOUDINARY_API_KEY');
+const CLOUDINARY_UPLOAD_PRESET = getEnvVariable('CLOUDINARY_UPLOAD_PRESET', '');
+const CLOUDINARY_CLOUD_NAME = getEnvVariable('CLOUDINARY_CLOUD_NAME', '');
 
+// Validate config before upload
 export const uploadToCloudinary = async (file: File, folder: string = 'general') => {
+  if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
+    throw new Error('Cloudinary configuration missing. Please check your .env and deployment environment variables.');
+  }
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
   formData.append('folder', folder);
-  formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
 
   try {
     const response = await fetch(
@@ -29,11 +33,20 @@ export const uploadToCloudinary = async (file: File, folder: string = 'general')
         body: formData,
       }
     );
-    
+
     if (!response.ok) {
-      throw new Error('Upload failed');
+      let errorMsg = 'Upload failed';
+      try {
+        const errData = await response.json();
+        if (errData && errData.error && errData.error.message) {
+          errorMsg = `Cloudinary: ${errData.error.message}`;
+        }
+      } catch {
+        // ignore
+      }
+      throw new Error(errorMsg);
     }
-    
+
     const data = await response.json();
     return {
       url: data.secure_url,
@@ -62,5 +75,7 @@ export const optimizeImage = (url: string, options: { width?: number; height?: n
   const transformation = transformations.join(',');
   const imagePath = url.split('/upload/')[1];
 
-  return `${base}${transformation}/${imagePath}`;
+  return transformation
+    ? `${base}${transformation}/${imagePath}`
+    : url;
 };

@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductContext';
 import { auth , db } from '../firebase'; // adjust the path based on your structure
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import QRImage from '../assets/payment-qr.png'; // Place your QR code image in /src/assets/payment-qr.png
+import { doc, updateDoc } from 'firebase/firestore';
 
 const Checkout = () => {
   const { cartItems, clearCart } = useCart();
@@ -32,7 +34,12 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Add state for transaction id and payment proof
+  const [transactionId, setTransactionId] = useState('');
+  const [showQR, setShowQR] = useState(false);
 
+  // Add state for payment modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Check if cart is loaded
   useEffect(() => {
@@ -46,6 +53,10 @@ const Checkout = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'paymentMethod') {
+      setShowQR(value === 'upi' || value === 'card');
+      setTransactionId('');
+    }
   };
 
   // Function to calculate total price and check stock
@@ -87,6 +98,7 @@ const Checkout = () => {
     };
   };
 
+  // Update handleSubmit to show modal for UPI/Card
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -103,18 +115,23 @@ const Checkout = () => {
       return;
     }
 
-    // Get order details
     const orderDetails = calculateOrderDetails();
-    
+
     if (orderDetails.hasOutOfStock) {
       setNotification({ type: 'error', message: 'Some items in your cart are out of stock' });
       setIsSubmitting(false);
       return;
     }
 
-    // Validation - ensure we have a valid total
     if (orderDetails.total <= 0) {
       setNotification({ type: 'error', message: 'Invalid order amount. Please check your cart.' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // If UPI or Card, show payment modal for QR and transaction ID
+    if ((formData.paymentMethod === 'upi' || formData.paymentMethod === 'card') && !transactionId.trim()) {
+      setShowPaymentModal(true);
       setIsSubmitting(false);
       return;
     }
@@ -146,7 +163,8 @@ const Checkout = () => {
 
       // Payment and Status
       paymentMethod: formData.paymentMethod,
-      paymentStatus: formData.paymentMethod === 'cod' ? 'Pending' : 'Paid',
+      paymentStatus: formData.paymentMethod === 'cod' ? 'Pending' : 'Pending Approval',
+      transactionId: formData.paymentMethod === 'upi' || formData.paymentMethod === 'card' ? transactionId.trim() : '',
       date: Timestamp.now(),
       status: 'Processing',
       lastUpdated: Timestamp.now(),
@@ -177,7 +195,8 @@ const Checkout = () => {
         status: 'Processing',
         date: Timestamp.now(),
         comment: 'Order placed successfully'
-      }]
+      }],
+      approvalStatus: formData.paymentMethod === 'cod' ? 'approved' : 'pending' // For admin approval
     };
 
     try {
@@ -394,7 +413,7 @@ const Checkout = () => {
                   />
                   <label htmlFor="card" className="flex items-center">
                     <CreditCard className="w-5 h-5 mr-2" />
-                    Credit/Debit Card
+                    Credit/Debit Card (Manual Approval)
                   </label>
                 </div>
                 <div className="flex items-center">
@@ -407,7 +426,7 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     className="mr-3"
                   />
-                  <label htmlFor="upi">UPI</label>
+                  <label htmlFor="upi">UPI (Manual Approval)</label>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -422,6 +441,22 @@ const Checkout = () => {
                   <label htmlFor="cod">Cash on Delivery</label>
                 </div>
               </div>
+              {/* Show QR and transaction id input if UPI or Card */}
+              {showQR && (
+                <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex flex-col items-center">
+                  <img src={QRImage} alt="Scan to Pay" className="w-48 h-48 mb-4" />
+                  <p className="text-yellow-700 font-semibold mb-2">Scan this QR code to pay</p>
+                  <p className="text-gray-600 text-sm mb-4">After payment, enter your transaction ID below for admin approval.</p>
+                  <input
+                    type="text"
+                    value={transactionId}
+                    onChange={e => setTransactionId(e.target.value)}
+                    placeholder="Enter Transaction ID"
+                    className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    required={showQR}
+                  />
+                </div>
+              )}
             </div>
           </div>
           
@@ -488,6 +523,62 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal for UPI/Card */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full relative">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl"
+              onClick={() => setShowPaymentModal(false)}
+            >
+              &times;
+            </button>
+            <div className="flex flex-col items-center">
+              <img src={QRImage} alt="Scan to Pay" className="w-48 h-48 mb-4" />
+              <p className="text-yellow-700 font-semibold mb-2">Scan this QR code to pay</p>
+              <p className="text-gray-600 text-sm mb-4 text-center">
+                After payment, enter your transaction ID below for admin approval.
+              </p>
+              <input
+                type="text"
+                value={transactionId}
+                onChange={e => setTransactionId(e.target.value)}
+                placeholder="Enter Transaction ID"
+                className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 mb-4"
+                required
+              />
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!transactionId.trim()) return;
+                    setShowPaymentModal(false);
+                    setIsSubmitting(true);
+                    // Call handleSubmit again to proceed with order placement
+                    // but now transactionId is filled
+                    // Use a setTimeout to allow modal to close before proceeding
+                    setTimeout(() => {
+                      // Simulate form submission
+                      const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                      handleSubmit(fakeEvent);
+                    }, 100);
+                  }}
+                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  disabled={!transactionId.trim()}
+                >
+                  Submit Transaction ID
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

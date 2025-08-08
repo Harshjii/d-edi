@@ -24,8 +24,11 @@ const Cart = () => {
     );
   }
 
-  // Calculate shipping charges: average if multiple, single value if one, 0 if none
-  const shippingCharges =
+  // Get subtotal to use in calculations
+  const subtotal = getTotalPrice();
+
+  // Calculate base shipping charges (average of all items)
+  const baseShipping =
     cartItems.length === 1
       ? cartItems[0].shippingCharges || 0
       : cartItems.length > 1
@@ -33,6 +36,12 @@ const Cart = () => {
             cartItems.reduce((sum, item) => sum + (item.shippingCharges || 0), 0) / cartItems.length
           )
         : 0;
+  
+  // Apply free shipping logic: free if subtotal is over 499
+  const finalShippingCharges = subtotal > 499 ? 0 : baseShipping;
+
+  // Calculate the final total
+  const total = subtotal + finalShippingCharges;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,20 +111,18 @@ const Cart = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">₹{getTotalPrice()}</span>
+                  <span className="font-medium">₹{subtotal}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium text-gray-900">₹{shippingCharges}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">GST (18%)</span>
-                  <span className="font-medium">₹{Math.round(getTotalPrice() * 0.18)}</span>
+                  <span className="font-medium text-gray-900">
+                    {subtotal > 499 ? <span className="text-green-600">Free</span> : `₹${finalShippingCharges}`}
+                  </span>
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold">Total</span>
-                    <span className="text-lg font-semibold">₹{Math.round(getTotalPrice() + (getTotalPrice() * 0.18) + shippingCharges)}</span>
+                    <span className="text-lg font-semibold">₹{total}</span>
                   </div>
                 </div>
               </div>

@@ -21,13 +21,13 @@ const Footer = () => {
               Premium custom clothing brand offering trendy and ethnic wear with modern designs and exceptional quality.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-secondary hover:text-accent transition-colors">
+              <a href="#" className="text-secondary hover:text-accent transition-all duration-300">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="https://instagram.com/deepjotclothingstore" className="text-secondary hover:text-accent transition-colors">
+              <a href="https://www.instagram.com/d_edi9?igsh=MXJsbmh4bHdka3V1bw==" className="text-secondary hover:text-accent transition-all duration-300">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="text-secondary hover:text-accent transition-colors">
+              <a href="#" className="text-secondary hover:text-accent transition-all duration-300">
                 <Twitter className="w-5 h-5" />
               </a>
             </div>
@@ -37,11 +37,9 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><Link to="/" className="text-secondary hover:text-white transition-colors">Home</Link></li>
-              <li><Link to="/products" className="text-secondary hover:text-white transition-colors">All Products</Link></li>
-              <li><Link to="/products/t-shirts" className="text-secondary hover:text-white transition-colors">T-Shirts</Link></li>
-              <li><Link to="/products/dresses" className="text-secondary hover:text-white transition-colors">Dresses</Link></li>
-              <li><Link to="/products/ethnic" className="text-secondary hover:text-white transition-colors">Ethnic Wear</Link></li>
+              <li><Link to="/" className="text-secondary hover:text-white transition-all duration-300">Home</Link></li>
+              <li><Link to="/products" className="text-secondary hover:text-white transition-all duration-300">All Products</Link></li>
+
             </ul>
           </div>
 
@@ -49,11 +47,9 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Customer Service</h3>
             <ul className="space-y-2">
-              <li><Link to="/contact" className="text-secondary hover:text-white transition-colors">Contact Us</Link></li>
-              <li><Link to="/shipping" className="text-secondary hover:text-white transition-colors">Shipping Info</Link></li>
-              <li><Link to="/returns" className="text-secondary hover:text-white transition-colors">Returns & Exchanges</Link></li>
-              <li><Link to="/size-guide" className="text-secondary hover:text-white transition-colors">Size Guide</Link></li>
-              <li><Link to="/faq" className="text-secondary hover:text-white transition-colors">FAQ</Link></li>
+              <li><Link to="/contact" className="text-secondary hover:text-white transition-all duration-300">Contact Us</Link></li>
+              <li><Link to="/shipping" className="text-secondary hover:text-white transition-all duration-300">Shipping Info</Link></li>
+              <li><Link to="/faq" className="text-secondary hover:text-white transition-all duration-300">FAQ</Link></li>
             </ul>
           </div>
 
@@ -77,13 +73,15 @@ const Footer = () => {
           </div>
         </div>
 
+
+
         <div className="border-t border-primary mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-secondary text-sm">
             © 2024 D-EDI. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link to="/privacy" className="text-secondary hover:text-white text-sm transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="text-secondary hover:text-white text-sm transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="text-secondary hover:text-white text-sm transition-all duration-300">Privacy Policy</Link>
+            <Link to="/terms" className="text-secondary hover:text-white text-sm transition-all duration-300">Terms of Service</Link>
           </div>
         </div>
       </div>

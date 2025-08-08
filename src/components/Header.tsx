@@ -48,7 +48,7 @@ function ProfileMenu({ user, onLogout }) {
   return (
     <div className="relative" ref={profileMenuRef}>
       <button
-        className="flex items-center space-x-2 text-text-primary hover:text-accent p-2 rounded-lg hover:bg-background transition-colors"
+        className="flex items-center space-x-2 text-text-primary hover:text-accent p-2 rounded-lg hover:bg-background transition-all duration-300"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="true"
         aria-expanded={open}
@@ -62,9 +62,9 @@ function ProfileMenu({ user, onLogout }) {
       {open && (
         <div className="fixed bg-card rounded-xl shadow-xl border border-gray-200 py-2 z-[70] w-56"
              style={{
-               top: profileMenuRef.current ? 
+               top: profileMenuRef.current ?
                  profileMenuRef.current.getBoundingClientRect().bottom + 8 + 'px' : '100%',
-               left: profileMenuRef.current ? 
+               left: profileMenuRef.current ?
                  Math.max(8, profileMenuRef.current.getBoundingClientRect().right - 224) + 'px' : 'auto'
              }}>
           <div className="px-4 py-3 border-b border-gray-100">
@@ -137,14 +137,14 @@ const Header = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchDisabled, setSearchDisabled] = useState(false);
-  
+
   // Get unique categories from products
   const [categories, setCategories] = useState([]);
   useEffect(() => {
     const cats = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
     setCategories(cats);
   }, [products]);
-  
+
   // Track route changes to disable search
   const [lastPath, setLastPath] = useState(window.location.pathname);
   useEffect(() => {
@@ -190,21 +190,21 @@ const Header = () => {
   useEffect(() => {
     function handleClick(e) {
       const isDesktop = window.innerWidth >= 1024;
-      
+
       // Handle desktop category dropdown
       if (showDesktopCategories && desktopCategoryDropdownRef.current) {
         if (!desktopCategoryDropdownRef.current.contains(e.target)) {
           setShowDesktopCategories(false);
         }
       }
-      
+
       // Handle mobile category dropdown
       if (showMobileCategories && mobileCategoryDropdownRef.current) {
         if (!mobileCategoryDropdownRef.current.contains(e.target)) {
           setShowMobileCategories(false);
         }
       }
-      
+
       // Handle search input closing
       if (showSearchInput) {
         const form = isDesktop ? desktopSearchInputRef.current : mobileSearchInputRef.current;
@@ -213,7 +213,7 @@ const Header = () => {
         }
       }
     }
-    
+
     function handleEsc(e) {
       if (e.key === 'Escape') {
         setShowSearchInput(false);
@@ -221,7 +221,7 @@ const Header = () => {
         setShowMobileCategories(false);
       }
     }
-    
+
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleEsc);
     return () => {
@@ -234,7 +234,7 @@ const Header = () => {
     <header className="sticky top-0 left-0 right-0 z-50 bg-card shadow-lg border-b border-gray-200">
       {/* Top banner */}
       <div className="bg-primary-dark text-white py-2 text-center text-xs sm:text-sm font-medium">
-        Free shipping on orders above ₹999 | Follow us @deepjotclothingstore
+        Free shipping on orders above ₹499 | Follow us @d_edi9
       </div>
       {/* Main header */}
       <div className="w-full px-2 lg:px-8 py-2 relative">
@@ -249,14 +249,14 @@ const Header = () => {
           <span className="text-xl font-bold text-primary-dark tracking-wide">D-EDI</span>
         </Link>
         <nav className="flex items-center gap-4 min-w-fit">
-          <Link to="/" className="text-text-primary hover:text-accent font-medium transition-colors">Home</Link>
-          <Link to="/products" className="text-text-primary hover:text-accent font-medium transition-colors">Products</Link>
-          <Link to="/featured" className="text-text-primary hover:text-accent font-medium transition-colors">Featured Products</Link>
+          <Link to="/" className="text-text-primary hover:text-accent font-medium transition-all duration-300">Home</Link>
+          <Link to="/products" className="text-text-primary hover:text-accent font-medium transition-all duration-300">Products</Link>
+          <a href="/#featured-products" className="text-text-primary hover:text-accent font-medium transition-all duration-300">Featured Products</a>
         </nav>
         <div className="flex-1" />
         {/* Cart Icon */}
-        <Link 
-          to="/cart" 
+        <Link
+          to="/cart"
           className="relative p-2 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors"
           aria-label={`Shopping Cart with ${cartItemsCount} items`}
         >
@@ -292,11 +292,11 @@ const Header = () => {
           />
           {/* Category Dropdown */}
           <div className="relative" ref={desktopCategoryDropdownRef}>
-            <button 
-              type="button" 
-              className="flex items-center px-2 py-2 text-text-secondary font-medium hover:bg-gray-200 rounded" 
+            <button
+              type="button"
+              className="flex items-center px-2 py-2 text-text-secondary font-medium hover:bg-gray-200 rounded"
               onClick={e => {
-                e.preventDefault(); 
+                e.preventDefault();
                 e.stopPropagation();
                 setShowDesktopCategories(v => !v);
               }}
@@ -307,17 +307,17 @@ const Header = () => {
             {showDesktopCategories && (
               <div className="fixed bg-card rounded-lg shadow-xl border border-gray-200 py-2 z-[70] max-h-64 overflow-y-auto w-48"
                    style={{
-                     top: desktopCategoryDropdownRef.current ? 
+                     top: desktopCategoryDropdownRef.current ?
                        desktopCategoryDropdownRef.current.getBoundingClientRect().bottom + 8 + 'px' : '100%',
-                     left: desktopCategoryDropdownRef.current ? 
+                     left: desktopCategoryDropdownRef.current ?
                        Math.max(8, desktopCategoryDropdownRef.current.getBoundingClientRect().right - 192) + 'px' : 'auto'
                    }}>
-                <button 
+                <button
                   type="button"
-                  className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm" 
-                  onClick={() => { 
-                    setSelectedCategory(''); 
-                    setShowDesktopCategories(false); 
+                  className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm"
+                  onClick={() => {
+                    setSelectedCategory('');
+                    setShowDesktopCategories(false);
                   }}
                 >
                   All Categories
@@ -327,9 +327,9 @@ const Header = () => {
                     key={cat}
                     type="button"
                     className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm"
-                    onClick={() => { 
-                      setSelectedCategory(cat); 
-                      setShowDesktopCategories(false); 
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setShowDesktopCategories(false);
                     }}
                   >
                     {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
@@ -340,7 +340,7 @@ const Header = () => {
           </div>
         </form>
         <button
-          className={`p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors flex-shrink-0 ${showSearchInput ? 'bg-gray-200' : ''}`}
+          className={`p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-all duration-300 flex-shrink-0 ${showSearchInput ? 'bg-gray-200' : ''}`}
           onClick={() => {
             if (!showSearchInput) {
               setShowSearchInput(true);
@@ -389,11 +389,11 @@ const Header = () => {
           />
           {/* Category Dropdown */}
           <div className="relative" ref={mobileCategoryDropdownRef}>
-            <button 
-              type="button" 
-              className="flex items-center px-2 py-2 text-text-secondary font-medium hover:bg-gray-200 rounded" 
+            <button
+              type="button"
+              className="flex items-center px-2 py-2 text-text-secondary font-medium hover:bg-gray-200 rounded"
               onClick={e => {
-                e.preventDefault(); 
+                e.preventDefault();
                 e.stopPropagation();
                 setShowMobileCategories(v => !v);
               }}
@@ -404,17 +404,17 @@ const Header = () => {
             {showMobileCategories && (
               <div className="fixed bg-card rounded-lg shadow-xl border border-gray-200 py-2 z-[70] max-h-64 overflow-y-auto w-48"
                    style={{
-                     top: mobileCategoryDropdownRef.current ? 
+                     top: mobileCategoryDropdownRef.current ?
                        mobileCategoryDropdownRef.current.getBoundingClientRect().bottom + 8 + 'px' : '100%',
-                     left: mobileCategoryDropdownRef.current ? 
+                     left: mobileCategoryDropdownRef.current ?
                        Math.max(8, mobileCategoryDropdownRef.current.getBoundingClientRect().right - 192) + 'px' : 'auto'
                    }}>
-                <button 
+                <button
                   type="button"
-                  className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm" 
-                  onClick={() => { 
-                    setSelectedCategory(''); 
-                    setShowMobileCategories(false); 
+                  className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm"
+                  onClick={() => {
+                    setSelectedCategory('');
+                    setShowMobileCategories(false);
                   }}
                 >
                   All Categories
@@ -424,9 +424,9 @@ const Header = () => {
                     key={cat}
                     type="button"
                     className="block w-full text-left px-4 py-2 text-text-primary hover:bg-background hover:text-accent text-sm"
-                    onClick={() => { 
-                      setSelectedCategory(cat); 
-                      setShowMobileCategories(false); 
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setShowMobileCategories(false);
                     }}
                   >
                     {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
@@ -460,7 +460,7 @@ const Header = () => {
           <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex flex-col">
             <div className="bg-card shadow-lg w-64 max-w-full h-full p-6 overflow-y-auto relative">
               <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowMobileMenu(false)}>&times;</button>
-              
+
               {/* Navigation Links */}
               <div className="mb-6 mt-8">
                 <h3 className="text-lg font-bold text-accent flex items-center mb-4">
@@ -471,7 +471,7 @@ const Header = () => {
                 <Link to="/wishlist" className="block px-4 py-3 text-text-primary hover:text-accent hover:bg-background font-medium rounded-lg transition-colors" onClick={() => setShowMobileMenu(false)}>Wishlist</Link>
                 <Link to="/cart" className="block px-4 py-3 text-text-primary hover:text-accent hover:bg-background font-medium rounded-lg transition-colors" onClick={() => setShowMobileMenu(false)}>Cart</Link>
               </div>
-              
+
               {/* Categories Section */}
               <div className="border-t pt-4">
                 <h3 className="text-lg font-bold text-accent flex items-center mb-4">

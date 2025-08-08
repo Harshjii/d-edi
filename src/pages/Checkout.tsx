@@ -13,6 +13,14 @@ const Checkout = () => {
   const { getProductById } = useProducts();
   const navigate = useNavigate();
 
+  const indianStates = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana",
+    "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
+    "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh",
+    "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+  ];
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -24,7 +32,7 @@ const Checkout = () => {
     pincode: '',
     paymentMethod: 'upi'
   });
-  
+
   const [formErrors, setFormErrors] = useState({});
 
   // Notification state
@@ -60,7 +68,7 @@ const Checkout = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, [cartItems]);
-  
+
   useEffect(() => {
     validateForm();
   }, [formData]);
@@ -71,38 +79,40 @@ const Checkout = () => {
   };
 
   // Function to calculate total price and check stock
-    const calculateOrderDetails = () => {
+  const calculateOrderDetails = () => {
     if (!cartItems || cartItems.length === 0) {
       return {
         subtotal: 0,
-        gst: 0,
         shippingCharges: 0,
         total: 0,
         hasOutOfStock: false
       };
     }
 
-    // Get maximum shipping charge
-    const shippingCharges = Math.max(...cartItems.map(item => item.shippingCharges || 0));
-
     // Calculate subtotal and check stock
     const { subtotal, hasOutOfStock } = cartItems.reduce((acc, item) => {
       const itemPrice = Number(item.price) || 0;
       const itemQuantity = Number(item.quantity) || 0;
       const product = getProductById(item.id);
-      
+
       return {
         subtotal: acc.subtotal + (itemPrice * itemQuantity),
         hasOutOfStock: acc.hasOutOfStock || !product?.inStock
       };
     }, { subtotal: 0, hasOutOfStock: false });
 
-    const gst = Math.round(subtotal * 0.18);
-    const total = subtotal + gst + shippingCharges;
+    let shippingCharges = 0;
+
+    // Apply shipping charges only if subtotal is 499 or less
+    if (subtotal <= 499) {
+        shippingCharges = Math.max(...cartItems.map(item => item.shippingCharges || 0));
+    }
+    // If subtotal > 499, shippingCharges remains 0, effectively making it free.
+
+    const total = subtotal + shippingCharges;
 
     return {
       subtotal,
-      gst,
       shippingCharges,
       total,
       hasOutOfStock
@@ -146,7 +156,7 @@ const Checkout = () => {
 
     // Get order details
     const orderDetails = calculateOrderDetails();
-    
+
     if (orderDetails.hasOutOfStock) {
       setNotification({ type: 'error', message: 'Some items in your cart are out of stock' });
       setIsSubmitting(false);
@@ -168,7 +178,7 @@ const Checkout = () => {
       // User and Order Identification
       userId: user.uid,
       orderId: Math.random().toString(36).substring(2, 15),
-      
+
       // Customer Information
       customerName: `${formData.firstName} ${formData.lastName}`,
       firstName: formData.firstName,
@@ -197,9 +207,8 @@ const Checkout = () => {
       // Order Details
       amount: orderDetails.total,
       subtotal: orderDetails.subtotal,
-      gst: orderDetails.gst,
       shippingCharges: orderDetails.shippingCharges,
-      
+
       // Order Summary
       totalItems: cartItems.reduce((sum, item) => sum + Number(item.quantity), 0),
       orderNotes: '',
@@ -214,7 +223,7 @@ const Checkout = () => {
         subtotal: (Number(item.price) || 0) * (Number(item.quantity) || 0),
         shippingCharges: item.shippingCharges || 0
       })),
-      
+
       // Track Order History
       orderHistory: [{
         status: 'Processing',
@@ -226,10 +235,10 @@ const Checkout = () => {
     try {
       const docRef = await addDoc(collection(db, 'orders'), order);
       console.log('Order created with ID:', docRef.id);
-      
+
       setNotification({ type: 'success', message: 'Order placed successfully!' });
       clearCart();
-      
+
       setTimeout(() => {
         setNotification(null);
         navigate('/dashboard');
@@ -238,7 +247,7 @@ const Checkout = () => {
       console.error('Error placing order:', error);
       setNotification({ type: 'error', message: 'Something went wrong. Please try again.' });
     }
-    
+
     setIsSubmitting(false);
   };
 
@@ -274,7 +283,7 @@ const Checkout = () => {
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">Your cart is empty</h2>
           <button
             onClick={() => navigate('/products')}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg transition-all duration-300"
           >
             Continue Shopping
           </button>
@@ -290,8 +299,8 @@ const Checkout = () => {
         <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6">
           <div
             className={`px-6 py-4 rounded-lg shadow-lg text-white font-medium transition-all transform animate-bounce
-              ${notification.type === 'success' 
-                ? 'bg-green-500 border-l-4 border-green-600' 
+              ${notification.type === 'success'
+                ? 'bg-green-500 border-l-4 border-green-600'
                 : 'bg-red-500 border-l-4 border-red-600'
               }`}
           >
@@ -326,7 +335,7 @@ const Checkout = () => {
                       value={formData.firstName}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                     />
                     {formErrors.firstName && <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>}
                   </div>
@@ -338,7 +347,7 @@ const Checkout = () => {
                       value={formData.lastName}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                     />
                      {formErrors.lastName && <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>}
                   </div>
@@ -351,7 +360,7 @@ const Checkout = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                   />
                    {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
                 </div>
@@ -363,7 +372,7 @@ const Checkout = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                   />
                   {formErrors.phone && <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>}
                 </div>
@@ -375,7 +384,7 @@ const Checkout = () => {
                     value={formData.address}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                   />
                   {formErrors.address && <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>}
                 </div>
@@ -388,7 +397,7 @@ const Checkout = () => {
                       value={formData.city}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                     />
                     {formErrors.city && <p className="text-red-500 text-xs mt-1">{formErrors.city}</p>}
                   </div>
@@ -399,14 +408,12 @@ const Checkout = () => {
                       value={formData.state}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                     >
                       <option value="">Select State</option>
-                      <option value="maharashtra">Maharashtra</option>
-                      <option value="delhi">Delhi</option>
-                      <option value="karnataka">Karnataka</option>
-                      <option value="tamil-nadu">Tamil Nadu</option>
-                      <option value="gujarat">Gujarat</option>
+                      {indianStates.map(state => (
+                        <option key={state} value={state}>{state}</option>
+                      ))}
                     </select>
                     {formErrors.state && <p className="text-red-500 text-xs mt-1">{formErrors.state}</p>}
                   </div>
@@ -418,14 +425,14 @@ const Checkout = () => {
                       value={formData.pincode}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                     />
                     {formErrors.pincode && <p className="text-red-500 text-xs mt-1">{formErrors.pincode}</p>}
                   </div>
                 </div>
               </form>
             </div>
-            
+
             {/* Payment Method */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-6 flex items-center">
@@ -445,22 +452,10 @@ const Checkout = () => {
                   />
                   <label htmlFor="upi">UPI</label>
                 </div>
-                <div className="flex items-center">
-                  <input
-                    type="radio"
-                    id="cod"
-                    name="paymentMethod"
-                    value="cod"
-                    checked={formData.paymentMethod === 'cod'}
-                    onChange={handleInputChange}
-                    className="mr-3"
-                  />
-                  <label htmlFor="cod">Cash on Delivery</label>
-                </div>
               </div>
             </div>
           </div>
-          
+
           {/* Order Summary */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6">
@@ -489,11 +484,7 @@ const Checkout = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>₹{orderDetails.shippingCharges}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>GST (18%)</span>
-                  <span>₹{orderDetails.gst}</span>
+                  <span>{orderDetails.shippingCharges > 0 ? `₹${orderDetails.shippingCharges}` : 'Free'}</span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
@@ -508,15 +499,15 @@ const Checkout = () => {
               <button
                 onClick={handlePlaceOrderClick}
                 disabled={isSubmitting || orderDetails.hasOutOfStock || Object.keys(formErrors).length > 0}
-                className={`w-full mt-6 py-3 rounded-lg font-semibold transition-colors ${
+                className={`w-full mt-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
                   isSubmitting || orderDetails.hasOutOfStock || Object.keys(formErrors).length > 0
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-yellow-500 hover:bg-yellow-600 text-white'
                 }`}
               >
-                {isSubmitting 
-                  ? 'Placing Order...' 
-                  : orderDetails.hasOutOfStock 
+                {isSubmitting
+                  ? 'Placing Order...'
+                  : orderDetails.hasOutOfStock
                     ? 'Some items are out of stock'
                     : 'Place Order'}
               </button>
@@ -540,21 +531,16 @@ const Checkout = () => {
                       type="text"
                       value={transactionId}
                       onChange={(e) => setTransactionId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-300"
                       placeholder="Enter UPI Transaction ID"
                       required
                     />
                   </div>
                 </div>
               )}
-              {formData.paymentMethod === 'cod' && (
-                <div className="text-center">
-                  <p>You have selected Cash on Delivery. Click "Confirm Order" to place your order.</p>
-                </div>
-              )}
               <button
                 onClick={handleSubmit}
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold transition-all duration-300"
                 disabled={isSubmitting || (formData.paymentMethod === 'upi' && !transactionId)}
               >
                 {isSubmitting ? 'Confirming...' : 'Confirm Order'}

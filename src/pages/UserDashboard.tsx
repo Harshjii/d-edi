@@ -17,9 +17,11 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
+import { useLoading } from '../context/LoadingContext';
 
 const UserDashboard = () => {
   const { user } = useAuth();
+  const { setIsLoading } = useLoading();
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -49,6 +51,11 @@ const UserDashboard = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  const changeTab = (tabId: string) => {
+    setIsLoading(true);
+    setActiveTab(tabId);
+    setTimeout(() => setIsLoading(false), 300);
+  };
 
   // Fetch wishlist
   React.useEffect(() => {
@@ -218,14 +225,14 @@ const UserDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-gradient-to-r from-primary to-primary-dark rounded-lg p-8 mb-8 text-white animate-fadeInUp">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center">
+        <div className="bg-gradient-to-r from-primary to-primary-dark rounded-lg p-6 sm:p-8 mb-8 text-white animate-fadeInUp">
+          <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center flex-shrink-0">
               <User className="w-8 h-8 text-primary-dark" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Welcome back, {user?.email || 'User'}!</h1>
-              <p className="text-gray-300">Manage your account and track your orders</p>
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold">Welcome back, {user?.email?.split('@')[0] || 'User'}!</h1>
+              <p className="text-gray-300 text-sm sm:text-base">Manage your account and track your orders</p>
             </div>
           </div>
         </div>
@@ -233,7 +240,7 @@ const UserDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1 animate-fadeInUp">
             <div className="bg-card rounded-lg shadow">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <h2 className="text-lg font-semibold mb-4 text-text-primary">Account</h2>
                 <nav className="space-y-2">
                   {tabs.map((tab) => {
@@ -241,10 +248,10 @@ const UserDashboard = () => {
                     return (
                       <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                        onClick={() => changeTab(tab.id)}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 text-sm sm:text-base ${
                           activeTab === tab.id
-                            ? 'bg-primary text-white'
+                            ? 'bg-primary text-white shadow-md'
                             : 'text-text-secondary hover:bg-background'
                         }`}
                       >
@@ -259,13 +266,13 @@ const UserDashboard = () => {
           </div>
 
           <div className="lg:col-span-3 animate-fadeInUp" style={{ animationDelay: '200ms' }}>
-            <div className="bg-card rounded-lg shadow">
-              <div className="p-6">
+            <div className="bg-card rounded-lg shadow min-h-[400px]">
+              <div className="p-4 sm:p-6">
                 {activeTab === 'orders' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6 text-text-primary">My Orders</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-6 text-text-primary">My Orders</h2>
                     {loadingOrders ? (
-                      <p className="text-text-secondary">Loading orders...</p>
+                      <p className="text-text-secondary text-center py-10">Loading orders...</p>
                     ) : orders.length === 0 ? (
                       <div className="text-center py-12">
                         <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -274,13 +281,13 @@ const UserDashboard = () => {
                     ) : (
                       <div className="space-y-4">
                         {orders.map((order) => (
-                          <div key={order.id} className="border border-gray-200 rounded-lg p-6">
-                            <div className="flex justify-between items-start mb-4">
-                              <div>
-                                <h3 className="font-semibold text-text-primary">{order.items.map(item => item.name).join(', ')}</h3>
-                                <p className="text-text-secondary">Placed on {order.date.toLocaleDateString()}</p>
+                          <div key={order.id} className="border border-gray-200 rounded-lg p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                              <div className="flex-grow">
+                                <h3 className="font-semibold text-text-primary text-base sm:text-lg">{order.items.map(item => item.name).join(', ')}</h3>
+                                <p className="text-text-secondary text-xs sm:text-sm">Placed on {order.date.toLocaleDateString()}</p>
                               </div>
-                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium self-start sm:self-center ${
                                 order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
                                 order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
                                 'bg-yellow-100 text-yellow-800'
@@ -288,7 +295,7 @@ const UserDashboard = () => {
                                 {order.status}
                               </span>
                             </div>
-                            <div className="space-y-2 mb-4">
+                            <div className="space-y-2 mb-4 text-xs sm:text-sm">
                               {order.items.map((item: any, index: number) => (
                                 <div key={index} className="flex justify-between text-text-secondary">
                                   <span>{item.name} x {item.quantity}</span>
@@ -296,10 +303,9 @@ const UserDashboard = () => {
                                 </div>
                               ))}
                             </div>
-                            <div className="flex justify-between items-center pt-4 border-t">
-                              <span className="font-semibold text-text-primary">
+                            <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t gap-4">
+                              <span className="font-semibold text-text-primary text-base sm:text-lg">
                                 Total: ₹
-                                {/* Fix: Use order.amount if present, else fallback to sum of items */}
                                 {typeof order.amount === 'number'
                                   ? order.amount
                                   : order.items.reduce(
@@ -308,7 +314,7 @@ const UserDashboard = () => {
                                 }
                               </span>
                               <button
-                                className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg transition-colors font-semibold"
+                                className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg transition-all duration-300 font-semibold w-full sm:w-auto text-sm"
                                 onClick={() => navigate(`/track/${order.id}`)}
                               >
                                 Track Order
@@ -323,29 +329,29 @@ const UserDashboard = () => {
 
                 {activeTab === 'wishlist' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6 text-text-primary">My Wishlist</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-6 text-text-primary">My Wishlist</h2>
                     {wishlistLoading ? (
-                      <p className="text-text-secondary">Loading wishlist...</p>
+                      <p className="text-text-secondary text-center py-10">Loading wishlist...</p>
                     ) : wishlist.length === 0 ? (
                       <div className="text-center py-12">
                         <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <p className="text-text-secondary">Your wishlist is empty</p>
-                        <p className="text-gray-400">Start adding items you love!</p>
+                        <p className="text-gray-400 text-sm">Start adding items you love!</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {wishlist.map((item) => (
                           <div key={item.id} className="bg-card rounded-lg shadow-sm overflow-hidden">
                             <img src={item.image} alt={item.name} className="w-full h-48 object-cover" />
                             <div className="p-4">
-                              <h3 className="font-semibold text-text-primary mb-2">{item.name}</h3>
+                              <h3 className="font-semibold text-text-primary mb-2 truncate">{item.name}</h3>
                               <p className="text-text-primary font-bold mb-4">₹{item.price}</p>
-                              <div className="flex space-x-2">
+                              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 text-sm">
                                 <button
                                   onClick={() => window.location.href = `/product/${item.productId}`}
-                                  className="flex-1 bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium"
+                                  className="flex-1 bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium transition-all duration-300"
                                 >
-                                  View Details
+                                  View
                                 </button>
                                 <button
                                   onClick={() => {
@@ -353,7 +359,7 @@ const UserDashboard = () => {
                                       setWishlist(prev => prev.filter(i => i.id !== item.id));
                                     });
                                   }}
-                                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg"
+                                  className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all duration-300"
                                 >
                                   Remove
                                 </button>
@@ -368,28 +374,28 @@ const UserDashboard = () => {
 
                 {activeTab === 'addresses' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6 text-text-primary">Saved Addresses</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-6 text-text-primary">Saved Addresses</h2>
                     {addressLoading ? (
-                      <p className="text-text-secondary">Loading addresses...</p>
+                      <p className="text-text-secondary text-center py-10">Loading addresses...</p>
                     ) : (
                       <div>
                         <ul className="mb-4 space-y-2">
                           {addresses.map((addr: string, idx: number) => (
-                            <li key={idx} className="flex justify-between items-center p-3 bg-background rounded-lg">
-                              <span className="text-text-secondary">{addr}</span>
-                              <button onClick={() => handleRemoveAddress(addr)} className="text-red-500 hover:underline">Remove</button>
+                            <li key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-background rounded-lg gap-2">
+                              <span className="text-text-secondary text-sm break-words flex-1">{addr}</span>
+                              <button onClick={() => handleRemoveAddress(addr)} className="text-red-500 hover:underline transition-all duration-300 text-xs font-semibold self-end sm:self-center">REMOVE</button>
                             </li>
                           ))}
                         </ul>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <input
                             type="text"
                             value={addressInput}
                             onChange={e => setAddressInput(e.target.value)}
-                            className="flex-grow px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
+                            className="flex-grow px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm"
                             placeholder="Add new address"
                           />
-                          <button onClick={handleAddAddress} className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium">Add</button>
+                          <button onClick={handleAddAddress} className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm">Add</button>
                         </div>
                       </div>
                     )}
@@ -398,63 +404,63 @@ const UserDashboard = () => {
 
                 {activeTab === 'payments' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6 text-text-primary">Payment Methods</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-6 text-text-primary">Payment Methods</h2>
                     {paymentLoading ? (
-                      <p className="text-text-secondary">Loading payment methods...</p>
+                      <p className="text-text-secondary text-center py-10">Loading payment methods...</p>
                     ) : (
                       <div>
                         <ul className="mb-4 space-y-2">
                           {payments.map((pay: any, idx: number) => (
-                            <li key={idx} className="flex justify-between items-center p-3 bg-background rounded-lg">
-                              <span className="flex items-center gap-2 text-text-secondary">
-                                {pay.type === 'card' ? <CreditCard className="w-5 h-5 text-blue-600" /> : <span className="text-green-600 font-bold">UPI</span>}
+                            <li key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-background rounded-lg gap-2">
+                              <span className="flex items-center gap-2 text-text-secondary text-sm break-all flex-1">
+                                {pay.type === 'card' ? <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0" /> : <span className="text-green-600 font-bold flex-shrink-0">UPI</span>}
                                 {pay.type === 'card'
                                   ? `Card ending in ${pay.last4} (${pay.expiry})`
                                   : `UPI: ${pay.upiId}`}
                               </span>
-                              <button onClick={() => handleRemovePayment(pay)} className="text-red-500 hover:underline">Remove</button>
+                              <button onClick={() => handleRemovePayment(pay)} className="text-red-500 hover:underline transition-all duration-300 text-xs font-semibold self-end sm:self-center">REMOVE</button>
                             </li>
                           ))}
                         </ul>
-                        <button onClick={() => setShowPaymentModal(true)} className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium">Add Payment Method</button>
+                        <button onClick={() => setShowPaymentModal(true)} className="bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm">Add Payment Method</button>
                         {showPaymentModal && (
-                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fadeIn">
-                            <div className="bg-card rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fadeIn p-4">
+                            <div className="bg-card rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative">
                               <button className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl" onClick={() => setShowPaymentModal(false)}>&times;</button>
-                              <h3 className="text-xl font-bold mb-4 text-primary-dark">Add Payment Method</h3>
+                              <h3 className="text-lg sm:text-xl font-bold mb-4 text-primary-dark">Add Payment Method</h3>
                               <div className="mb-4 flex gap-4">
-                                <button onClick={() => setPaymentType('card')} className={`px-4 py-2 rounded-lg font-medium ${paymentType === 'card' ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'}`}>Card</button>
-                                <button onClick={() => setPaymentType('upi')} className={`px-4 py-2 rounded-lg font-medium ${paymentType === 'upi' ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'}`}>UPI</button>
+                                <button onClick={() => setPaymentType('card')} className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${paymentType === 'card' ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'}`}>Card</button>
+                                <button onClick={() => setPaymentType('upi')} className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${paymentType === 'upi' ? 'bg-accent text-white' : 'bg-gray-100 text-text-secondary'}`}>UPI</button>
                               </div>
                               <form onSubmit={handleAddPayment} className="space-y-4">
                                 {paymentType === 'card' ? (
                                   <>
                                     <div>
-                                      <label className="block text-sm font-medium text-text-secondary mb-1">Card Number</label>
-                                      <input type="text" maxLength={16} value={cardDetails.cardNumber.replace(/\D/g, '')} onChange={e => setCardDetails({ ...cardDetails, cardNumber: e.target.value.replace(/\D/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" placeholder="1234 5678 9012 3456" required />
+                                      <label className="block text-xs font-medium text-text-secondary mb-1">Card Number</label>
+                                      <input type="text" maxLength={16} value={cardDetails.cardNumber.replace(/\D/g, '')} onChange={e => setCardDetails({ ...cardDetails, cardNumber: e.target.value.replace(/\D/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm" placeholder="1234 5678 9012 3456" required />
                                     </div>
                                     <div>
-                                      <label className="block text-sm font-medium text-text-secondary mb-1">Name on Card</label>
-                                      <input type="text" value={cardDetails.name} onChange={e => setCardDetails({ ...cardDetails, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" required />
+                                      <label className="block text-xs font-medium text-text-secondary mb-1">Name on Card</label>
+                                      <input type="text" value={cardDetails.name} onChange={e => setCardDetails({ ...cardDetails, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm" required />
                                     </div>
                                     <div className="flex gap-4">
                                       <div className="flex-1">
-                                        <label className="block text-sm font-medium text-text-secondary mb-1">Expiry (MM/YY)</label>
-                                        <input type="text" maxLength={5} value={cardDetails.expiry} onChange={e => setCardDetails({ ...cardDetails, expiry: e.target.value.replace(/[^\d\/]/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" placeholder="MM/YY" required />
+                                        <label className="block text-xs font-medium text-text-secondary mb-1">Expiry (MM/YY)</label>
+                                        <input type="text" maxLength={5} value={cardDetails.expiry} onChange={e => setCardDetails({ ...cardDetails, expiry: e.target.value.replace(/[^\d\/]/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm" placeholder="MM/YY" required />
                                       </div>
                                       <div className="flex-1">
-                                        <label className="block text-sm font-medium text-text-secondary mb-1">CVV</label>
-                                        <input type="password" maxLength={3} value={cardDetails.cvv} onChange={e => setCardDetails({ ...cardDetails, cvv: e.target.value.replace(/\D/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" required />
+                                        <label className="block text-xs font-medium text-text-secondary mb-1">CVV</label>
+                                        <input type="password" maxLength={3} value={cardDetails.cvv} onChange={e => setCardDetails({ ...cardDetails, cvv: e.target.value.replace(/\D/g, '') })} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm" required />
                                       </div>
                                     </div>
                                   </>
                                 ) : (
                                   <div>
-                                    <label className="block text-sm font-medium text-text-secondary mb-1">UPI ID</label>
-                                    <input type="text" value={upiId} onChange={e => setUpiId(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent" placeholder="yourupi@bank" required />
+                                    <label className="block text-xs font-medium text-text-secondary mb-1">UPI ID</label>
+                                    <input type="text" value={upiId} onChange={e => setUpiId(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm" placeholder="yourupi@bank" required />
                                   </div>
                                 )}
-                                <button type="submit" className="w-full bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium">Add</button>
+                                <button type="submit" className="w-full bg-accent hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm">Add</button>
                               </form>
                             </div>
                           </div>
@@ -466,9 +472,9 @@ const UserDashboard = () => {
 
                 {activeTab === 'profile' && (
                   <div>
-                    <h2 className="text-2xl font-bold mb-6 text-text-primary">Profile Settings</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-6 text-text-primary">Profile Settings</h2>
                     {profileLoading ? (
-                      <p className="text-text-secondary">Loading profile...</p>
+                      <p className="text-text-secondary text-center py-10">Loading profile...</p>
                     ) : (
                       <form className="space-y-6" onSubmit={handleProfileSave}>
                         <div>
@@ -477,7 +483,7 @@ const UserDashboard = () => {
                             type="text"
                             value={profileEdit.name}
                             onChange={e => setProfileEdit({ ...profileEdit, name: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm"
                           />
                         </div>
                         <div>
@@ -486,7 +492,7 @@ const UserDashboard = () => {
                             type="email"
                             value={profileEdit.email}
                             onChange={e => setProfileEdit({ ...profileEdit, email: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm"
                           />
                         </div>
                         <div>
@@ -495,10 +501,10 @@ const UserDashboard = () => {
                             type="tel"
                             value={profileEdit.phone}
                             onChange={e => setProfileEdit({ ...profileEdit, phone: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-accent focus:border-accent transition-all duration-300 text-sm"
                           />
                         </div>
-                        <button type="submit" className="bg-accent hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        <button type="submit" className="bg-accent hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 text-sm">
                           Save Changes
                         </button>
                       </form>

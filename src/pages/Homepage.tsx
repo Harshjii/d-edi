@@ -64,7 +64,7 @@ const Homepage = () => {
           </p>
           <Link
             to="/products"
-            className="inline-block bg-gradient-to-r from-accent to-accent-dark text-white font-bold text-lg px-10 py-4 rounded-full shadow-lg transform transition-transform hover:scale-105 animate-background-pan"
+            className="inline-block bg-gradient-to-r from-accent to-accent-dark text-white font-bold text-lg px-10 py-4 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 animate-background-pan"
             style={{ backgroundSize: '200%' }}
           >
             Explore The Collection
@@ -81,7 +81,7 @@ const Homepage = () => {
                 <Truck className="w-10 h-10 text-accent" />
               </div>
               <h3 className="text-xl font-bold mb-2">Free Shipping</h3>
-              <p className="text-text-secondary">On all orders over ₹999</p>
+              <p className="text-text-secondary">On all orders over ₹499</p>
             </div>
             <div className="text-center group animate-fadeInUp" style={{ animationDelay: '150ms' }}>
               <div className="flex items-center justify-center mb-4">
@@ -95,7 +95,7 @@ const Homepage = () => {
                 <RotateCcw className="w-10 h-10 text-accent" />
               </div>
               <h3 className="text-xl font-bold mb-2">Easy Returns</h3>
-              <p className="text-text-secondary">30-day money-back guarantee</p>
+              <p className="text-text-secondary">10-day money-back guarantee</p>
             </div>
             <div className="text-center group animate-fadeInUp" style={{ animationDelay: '450ms' }}>
               <div className="flex items-center justify-center mb-4">
@@ -149,7 +149,7 @@ const Homepage = () => {
       </section>
 
       {/* Featured Products Section */}
-      <section className="py-24 bg-white">
+      <section id="featured-products" className="py-24 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-extrabold text-text-primary mb-4">Featured Products</h2>

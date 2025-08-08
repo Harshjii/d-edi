@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ArrowRight, Truck, Shield, Headphones, RotateCcw } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
-import HeroPoster from '../assets/lbb.jpg';
 
 // Utility to get all unique categories from products
 const useProductCategories = () => {
@@ -15,28 +14,11 @@ const Homepage = () => {
   const featuredProducts = getFeaturedProducts();
   const categories = useProductCategories();
 
-  const cloudinaryVideoUrl = "https://res.cloudinary.com/djfkvsxj0/video/upload/v1754578040/5743177-uhd_4096_2160_25fps_edjhu6.mp4";
-
-  // Add loading state for video
-  const [videoLoaded, setVideoLoaded] = useState(false);
-
-  // Only render the page after the video is loaded
-  if (!videoLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-          <p className="text-xl text-text-secondary">Loading...</p>
-        </div>
-        {/* Hidden video for preloading */}
-        <video
-          src={cloudinaryVideoUrl}
-          style={{ display: 'none' }}
-          onCanPlayThrough={() => setVideoLoaded(true)}
-        />
-      </div>
-    );
-  }
+  // ** IMPORTANT: Replace this with the URL of your video from Catbox.moe **
+  const catboxVideoUrl = "https://files.catbox.moe/s1ds5h.mp4"; 
+  
+  // ** (Optional) You can create and upload a poster image to Catbox as well **
+  const posterImageUrl = "..assets/frame-1.png"; 
 
   return (
     <div className="min-h-screen bg-background text-text-primary">
@@ -48,10 +30,9 @@ const Homepage = () => {
           loop
           muted
           playsInline
-          poster={HeroPoster}
+          poster={posterImageUrl}
           className="absolute z-0 w-full h-full object-cover"
-          src={cloudinaryVideoUrl}
-          onCanPlayThrough={() => setVideoLoaded(true)}
+          src={catboxVideoUrl}
         >
           Your browser does not support the video tag.
         </video>

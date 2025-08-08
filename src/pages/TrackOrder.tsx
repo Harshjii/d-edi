@@ -11,6 +11,13 @@ const TrackOrder = () => {
   const [animatedStatusIndex, setAnimatedStatusIndex] = useState(-1);
 
   const statuses = ["Payment Approval", "Order Confirmed", "Shipped", "Out for Delivery", "Delivered"];
+  const statusMap: { [key: string]: number } = {
+    "Order Confirmed": 1,
+    "Shipped": 2,
+    "Out for Delivery": 3,
+    "Delivered": 4
+  };
+
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -24,8 +31,19 @@ const TrackOrder = () => {
           const orderData = { id: orderDoc.id, ...orderDoc.data() };
           setOrder(orderData);
 
-          const finalStatusIndex = statuses.indexOf(orderData.status);
+          let finalStatusIndex = -1;
 
+          if (orderData.paymentStatus === 'Approved') {
+            // Payment is approved, so the first step is complete.
+            finalStatusIndex = 0;
+
+            // Check the main order status to see how much further it has progressed.
+            const orderStatusIndex = statusMap[orderData.status];
+            if (orderStatusIndex !== undefined) {
+              finalStatusIndex = orderStatusIndex;
+            }
+          }
+          
           if (finalStatusIndex > -1) {
             // Animate each status in sync with the green line
             let i = 0;
@@ -70,13 +88,9 @@ const TrackOrder = () => {
     );
   }
 
-  const finalStatusIndex = statuses.indexOf(order.status);
-  const progressPercentage = finalStatusIndex >= 0 
-    ? (finalStatusIndex / (statuses.length - 1)) * 100 
+  const animatedProgressPercentage = animatedStatusIndex >= 0
+    ? (animatedStatusIndex / (statuses.length - 1)) * 100
     : 0;
-  
-  // Calculate total animation time to sync the progress bar
-  const totalAnimationTime = finalStatusIndex * 350 + 300; // Total time for all icons to pop
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,35 +104,34 @@ const TrackOrder = () => {
             <Link to="/dashboard" className="text-accent hover:underline font-semibold mt-2 sm:mt-0">Back to Dashboard</Link>
           </div>
 
-          <div className="w-full px-4 sm:px-0">
-            <div className="relative flex justify-between items-center">
-              {/* Timeline background */}
-              <div className="absolute top-6 left-0 w-full h-1 -translate-y-1/2 bg-gray-300 z-0">
-                {/* Green bar synced with pop animation */}
+          <div className="w-full">
+            <div className="relative">
+              {/* Timeline background line */}
+              <div className="absolute top-6 left-6 right-6 h-1 -translate-y-1/2 bg-gray-300">
+                {/* Green progress bar */}
                 <div
-                  className="h-full bg-green-500 z-10"
+                  className="h-full bg-green-500"
                   style={{
-                    width:
-                      animatedStatusIndex >= 0
-                        ? `calc(${(animatedStatusIndex) / (statuses.length - 1) * 100}% + ${(animatedStatusIndex === statuses.length - 1) ? '0px' : '24px'})`
-                        : '0%',
+                    width: `${animatedProgressPercentage}%`,
                     transition: `width 350ms cubic-bezier(0.4,0,0.2,1)`
                   }}
                 ></div>
               </div>
-              {statuses.map((status, index) => (
-                <div key={status} className="relative z-20 text-center flex-1">
-                  <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-300 ${index <= animatedStatusIndex ? 'bg-green-500' : 'bg-gray-300'}`}>
-                    <CheckCircle
-                      className={`w-6 h-6 text-white transition-transform duration-300 ${index <= animatedStatusIndex ? 'animate-icon-pop' : 'scale-0'}`}
-                    />
+              <div className="relative flex justify-between items-start">
+                {statuses.map((status, index) => (
+                  <div key={status} className="relative z-10 text-center">
+                    <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-300 ${index <= animatedStatusIndex ? 'bg-green-500' : 'bg-gray-300'}`}>
+                      <CheckCircle
+                        className={`w-6 h-6 text-white transition-transform duration-300 ${index <= animatedStatusIndex ? 'animate-icon-pop' : 'scale-0'}`}
+                      />
+                    </div>
+                    <p className={`mt-2 font-semibold text-xs sm:text-sm transition-colors duration-300 w-24 ${index <= animatedStatusIndex ? 'text-green-600' : 'text-text-secondary'}`}>{status}</p>
                   </div>
-                  <p className={`mt-2 font-semibold text-xs sm:text-sm transition-colors duration-300 ${index <= animatedStatusIndex ? 'text-green-600' : 'text-text-secondary'}`}>{status}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-16">
             <div>
               <h3 className="text-xl font-semibold mb-4 text-text-primary">Order Details</h3>
@@ -126,6 +139,7 @@ const TrackOrder = () => {
                 <p><strong>Placed On:</strong> {order.date?.toDate ? order.date.toDate().toLocaleDateString() : ''}</p>
                 <p><strong>Total Amount:</strong> ₹{order.amount}</p>
                 <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
+                <p><strong>Payment Status:</strong> <span className={order.paymentStatus === 'Approved' ? 'text-green-600 font-semibold' : 'text-yellow-600 font-semibold'}>{order.paymentStatus}</span></p>
               </div>
             </div>
             <div>

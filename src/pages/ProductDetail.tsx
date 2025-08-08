@@ -30,6 +30,8 @@ const ProductDetail = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
   const [reviewForm, setReviewForm] = useState<ReviewFormData>({
     rating: 5,
     comment: ''
@@ -58,12 +60,22 @@ const ProductDetail = () => {
         createdAt: doc.data().createdAt.toDate()
       })) as Review[];
       setReviews(reviewsData);
+
+      if (reviewsData.length > 0) {
+        const totalRating = reviewsData.reduce((acc, review) => acc + review.rating, 0);
+        setAverageRating(totalRating / reviewsData.length);
+        setReviewCount(reviewsData.length);
+      } else {
+        setAverageRating(0);
+        setReviewCount(0);
+      }
     } catch (error) {
       console.error('Error fetching reviews:', error);
       setErrorMsg('Failed to load reviews');
       setShowToast(true);
     }
   };
+
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,11 +272,11 @@ const ProductDetail = () => {
                     <Star
                       key={i}
                       className={`w-5 h-5 ${
-                        i < Math.floor(product.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                        i < Math.floor(averageRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
                       }`}
                     />
                   ))}
-                  <span className="text-text-secondary ml-2">({product.reviews} reviews)</span>
+                  <span className="text-text-secondary ml-2">({reviewCount} reviews)</span>
                 </div>
               </div>
               <p className="text-text-secondary text-lg leading-relaxed">{product.description}</p>
@@ -356,8 +368,8 @@ const ProductDetail = () => {
                 onClick={handleAddToCart}
                 disabled={!product.inStock}
                 className={`flex-1 px-4 py-3 sm:px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg ${
-                  !product.inStock 
-                    ? 'bg-gray-400 cursor-not-allowed' 
+                  !product.inStock
+                    ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:bg-primary-dark text-white hover:shadow-xl'
                 }`}
               >
@@ -382,7 +394,7 @@ const ProductDetail = () => {
                   'Buy Now'
                 )}
               </button>
-              <button 
+              <button
                 onClick={async () => {
                   if (!user) {
                     navigate('/login');
@@ -612,7 +624,7 @@ const ProductDetail = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-secondary">Rating:</span>
-                    <span className="font-medium">{product.rating}/5</span>
+                    <span className="font-medium">{averageRating.toFixed(1)}/5</span>
                   </div>
                 </div>
               </div>

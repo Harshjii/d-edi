@@ -16,12 +16,13 @@ import {
   deleteDoc,
   orderBy
 } from 'firebase/firestore';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useLoading } from '../context/LoadingContext';
 
 const UserDashboard = () => {
   const { user } = useAuth();
   const { setIsLoading } = useLoading();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -51,8 +52,17 @@ const UserDashboard = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash) {
+      setActiveTab(hash);
+    }
+  }, [location]);
+
+
   const changeTab = (tabId: string) => {
     setIsLoading(true);
+    navigate(`#${tabId}`);
     setActiveTab(tabId);
     setTimeout(() => setIsLoading(false), 300);
   };

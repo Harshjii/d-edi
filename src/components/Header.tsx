@@ -183,18 +183,21 @@ const Header = () => {
   // For closing on outside click or Escape
   useEffect(() => {
     function handleClick(e) {
+      if (showSearchInput && desktopSearchInputRef.current && !desktopSearchInputRef.current.contains(e.target) && !e.target.closest('[aria-label="Toggle search"]')) {
+        setShowSearchInput(false);
+      }
       if (showDesktopCategories && desktopCategoryDropdownRef.current && !desktopCategoryDropdownRef.current.contains(e.target)) {
         setShowDesktopCategories(false);
       }
     }
-
+  
     function handleEsc(e) {
       if (e.key === 'Escape') {
         setShowSearchInput(false);
         setShowDesktopCategories(false);
       }
     }
-
+  
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleEsc);
     return () => {
@@ -232,7 +235,7 @@ const Header = () => {
           <input type="text" placeholder="Search for products..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-transparent focus:outline-none" disabled={searchDisabled} autoFocus={showSearchInput} />
         </form>
         <button className={`p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors`} onClick={() => setShowSearchInput(v => !v)} aria-label="Toggle search">
-          <Search className="w-6 h-6" />
+          {showSearchInput ? <X className="w-6 h-6" /> : <Search className="w-6 h-6" />}
         </button>
         {user ? <ProfileMenu user={user} onLogout={handleLogout} /> : <Link to="/login" className="p-2 ml-1 text-text-primary hover:text-accent rounded-lg hover:bg-background transition-colors"><User className="w-6 h-6" /></Link>}
       </div>

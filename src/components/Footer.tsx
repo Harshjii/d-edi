@@ -24,7 +24,7 @@ const Footer = () => {
               <a href="#" className="text-secondary hover:text-accent transition-all duration-300">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="https://www.instagram.com/d_edi9?igsh=MXJsbmh4bHdka3V1bw==" className="text-secondary hover:text-accent transition-all duration-300">
+              <a href="https://www.instagram.com/d_edi9" className="text-secondary hover:text-accent transition-all duration-300">
                 <Instagram className="w-5 h-5" />
               </a>
               <a href="#" className="text-secondary hover:text-accent transition-all duration-300">
@@ -47,9 +47,9 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Customer Service</h3>
             <ul className="space-y-2">
-              <li><Link to="/contact" className="text-secondary hover:text-white transition-all duration-300">Contact Us</Link></li>
-              <li><Link to="/shipping" className="text-secondary hover:text-white transition-all duration-300">Shipping Info</Link></li>
-              <li><Link to="/faq" className="text-secondary hover:text-white transition-all duration-300">FAQ</Link></li>
+              <li><Link to="https://www.instagram.com/d_edi9" className="text-secondary hover:text-white transition-all duration-300">Contact Us</Link></li>
+              <li><Link to="https://www.instagram.com/d_edi9" className="text-secondary hover:text-white transition-all duration-300">Shipping Info</Link></li>
+              <li><Link to="https://www.instagram.com/d_edi9" className="text-secondary hover:text-white transition-all duration-300">FAQ</Link></li>
             </ul>
           </div>
 

@@ -315,21 +315,24 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Color Selection */}
+            {/* Color Selection - YouTube tags style */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Color</h3>
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
+              <div className="flex flex-wrap gap-2">
                 {product.colors.map((color) => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`px-3 py-2 sm:px-4 border rounded-lg font-medium transition-colors text-sm sm:text-base ${
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 hover:bg-opacity-90 ${
                       selectedColor === color
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-card text-gray-700 border-gray-300 hover:border-primary'
+                        ? 'bg-primary text-white shadow-md transform hover:-translate-y-0.5'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     {color}
+                    {selectedColor === color && (
+                      <span className="ml-1.5 inline-block">✓</span>
+                    )}
                   </button>
                 ))}
               </div>

@@ -25,6 +25,7 @@ const AdminPanel = () => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
+  const [colorInput, setColorInput] = useState('');
 
 
   // Users pagination
@@ -1336,23 +1337,63 @@ const AdminPanel = () => {
                 {/* Colors */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Colors</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'].map(color => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => toggleArrayItem(productForm.colors, color, setProductForm)}
-                        className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
-                          productForm.colors.includes(color)
-                            ? 'bg-blue-500 text-white border-blue-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
-                        }`}
-                      >
+                  <div className="flex items-center flex-wrap gap-2 p-2 border border-gray-300 rounded-lg">
+                    {productForm.colors.map((color, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-blue-500 text-white text-sm font-medium px-2 py-1 rounded">
                         {color}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProductForm(prev => ({
+                              ...prev,
+                              colors: prev.colors.filter((_, i) => i !== index)
+                            }));
+                          }}
+                          className="text-white hover:text-gray-200"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     ))}
+                    <input
+                      type="text"
+                      value={colorInput}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.includes(',')) {
+                          const newColors = value.split(',')
+                            .map(c => c.trim())
+                            .filter(c => c && !productForm.colors.includes(c));
+                          if (newColors.length > 0) {
+                            setProductForm(prev => ({
+                              ...prev,
+                              colors: [...prev.colors, ...newColors]
+                            }));
+                          }
+                          setColorInput('');
+                        } else {
+                          setColorInput(value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && colorInput.trim()) {
+                          e.preventDefault();
+                          const newColor = colorInput.trim();
+                          if (!productForm.colors.includes(newColor)) {
+                            setProductForm(prev => ({
+                              ...prev,
+                              colors: [...prev.colors, newColor]
+                            }));
+                          }
+                          setColorInput('');
+                        }
+                      }}
+                      className="flex-1 bg-transparent focus:outline-none"
+                      placeholder="Add colors..."
+                    />
                   </div>
                 </div>
+
 
                 {/* Image Upload */}
                 <div>
